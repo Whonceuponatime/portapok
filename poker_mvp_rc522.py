@@ -142,9 +142,60 @@ STATE = {name: {
     "type": cfg.get("type", "unknown")
 } for name, cfg in READERS.items()}
 
-# Create readers for UID detection and NTAG213 operations
-readers = {name: SimpleMFRC522(bus=cfg["bus"], device=cfg["device"]) for name, cfg in READERS.items()}
-raw_readers = {name: MFRC522(bus=cfg["bus"], device=cfg["device"]) for name, cfg in READERS.items()}
+# Initialize readers
+# Note: Standard mfrc522 library only supports one SPI device at a time
+# For multiple readers, you'll need one of these approaches:
+# 1. Use a library like 'pi-rc522' that supports multiple SPI devices
+# 2. Use GPIO multiplexing to switch between readers
+# 3. Use separate Pi GPIO pins for each reader's reset/CS lines
+# 4. Use I2C-to-SPI bridges for additional readers
+#
+# Current implementation: Single reader mapped to all configured positions
+# This allows testing the full web interface with one physical reader
+readers = {}
+raw_readers = {}
+
+print("Initializing RFID readers...")
+
+# For now, initialize only the first reader (left) as the standard library doesn't support multiple SPI devices
+# This can be expanded later with a library that supports multiple readers
+try:
+    # Create SimpleMFRC522 for UID detection (uses default SPI settings)
+    simple_reader = SimpleMFRC522()
+    
+    # Create raw MFRC522 for NTAG213 operations (uses default SPI settings)
+    raw_reader = MFRC522()
+    
+    # Map both configured readers to the same physical reader for now
+    # This allows the web interface to work while we use a single reader
+    for name in READERS.keys():
+        readers[name] = simple_reader
+        raw_readers[name] = raw_reader
+        print(f"Mapped {name} reader to physical RC522 (SPI default)")
+    
+    print(f"Successfully initialized RC522 reader(s)")
+    
+except Exception as e:
+    print(f"Failed to initialize RC522 reader: {e}")
+    print("Make sure SPI is enabled and RC522 is properly connected")
+    # Create dummy readers to prevent crashes
+    class DummyReader:
+        def read_no_block(self):
+            return None, None
+        def MFRC522_ToCard(self, command, data):
+            return None, None
+        @property
+        def MI_OK(self):
+            return 0
+        @property
+        def PCD_TRANSCEIVE(self):
+            return 0
+    
+    dummy = DummyReader()
+    for name in READERS.keys():
+        readers[name] = dummy
+        raw_readers[name] = dummy
+    print("Using dummy readers - RFID functionality disabled")
 
 stop_flag = False
 
@@ -295,6 +346,10 @@ WEB_TEMPLATE = '''
         <div class="header">
             <h1>🎰 {{ table_name }}</h1>
             <p>Professional RFID Poker Card Management System</p>
+            <div style="background: rgba(255,165,0,0.2); padding: 10px; border-radius: 8px; margin-top: 15px; border: 1px solid rgba(255,165,0,0.4);">
+                <small>📍 <strong>Single Reader Mode:</strong> All positions currently map to one physical RC522 reader. 
+                See documentation for multiple reader setup options.</small>
+            </div>
         </div>
 
         <div class="status-bar">

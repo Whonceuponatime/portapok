@@ -17,10 +17,12 @@ A semi-rollable proof-of-concept poker table with two RC522 RFID readers and NTA
 ## Hardware Requirements
 
 - Raspberry Pi (3B+/4/5 recommended)
-- 2x RC522 RFID reader modules
+- 1x RC522 RFID reader module (expandable to multiple)
 - NTAG213 stickers/cards
 - Jumper wires for connections
 - Cloth surface for rollable poker table
+
+**Note:** Current implementation uses a single RC522 reader. The web interface supports multiple reader positions, but they all map to the same physical reader for now. See [Multiple Reader Setup](#multiple-reader-setup) for expansion options.
 
 ## Wiring
 
@@ -30,20 +32,16 @@ sudo raspi-config
 # Interface Options → SPI → Enable → reboot
 ```
 
-### Shared connections to BOTH readers:
+### Single RC522 Reader Wiring:
 - **3V3** → 3.3V (pin 1)
 - **GND** → GND (pin 6)  
 - **SCK** → GPIO11/SCLK (pin 23)
 - **MOSI** → GPIO10/MOSI (pin 19)
 - **MISO** → GPIO9/MISO (pin 21)
+- **SDA/SS** → CE0 (GPIO8, pin 24)
+- **RST** → GPIO25 (pin 22)
 
-### Unique per reader:
-- **Reader A (left):**
-  - SDA/SS → CE0 (GPIO8, pin 24)
-  - RST → GPIO25 (pin 22)
-- **Reader B (right):**
-  - SDA/SS → CE1 (GPIO7, pin 26)
-  - RST → GPIO24 (pin 18)
+*For multiple readers, see [Multiple Reader Setup](#multiple-reader-setup) section below.*
 
 ## Installation
 
@@ -143,12 +141,42 @@ curl -X POST http://<pi>:8000/api/ntag/write \
 curl "http://<pi>:8000/api/ntag/dump?reader=left"
 ```
 
+## Multiple Reader Setup
+
+The current implementation uses a single RC522 reader mapped to all positions. To add multiple physical readers, choose one of these approaches:
+
+### Option 1: Advanced RC522 Library
+Use a library like `pi-rc522` that supports multiple SPI devices:
+```bash
+pip3 uninstall mfrc522
+pip3 install pi-rc522
+```
+Then update the reader initialization code to use multiple SPI buses.
+
+### Option 2: GPIO Multiplexing
+Use GPIO pins to control multiple RC522 reset lines, enabling one reader at a time:
+- Connect all readers to shared SPI bus
+- Use separate GPIO pins for each reader's RST line
+- Implement reader switching in software
+
+### Option 3: I2C-to-SPI Bridges
+Use I2C-to-SPI bridge chips (like SC18IS602B) to add more SPI buses:
+- Connect bridges to I2C bus
+- Each bridge provides independent SPI bus for RC522
+- Address multiple readers via I2C
+
+### Option 4: Multiple Raspberry Pis
+For large poker tables, use multiple Pis with centralized coordination:
+- Each Pi handles 2-4 readers
+- Network communication between Pis
+- Central server aggregates all data
+
 ## Next Steps
 
-- Add more readers (one per card spot) with unique CS pins
-- Upgrade to PN532 with external antenna for better range
-- Add web UI for card management
-- Implement game logic and rules engine
+- Implement chosen multiple reader approach
+- Upgrade to PN532 with external antenna for better range  
+- Add game logic and rules engine
+- Scale to full poker table with player positions
 
 ## Troubleshooting
 
