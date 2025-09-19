@@ -1,0 +1,18 @@
+{
+  "table_name": "Poker Table Alpha - Test Setup",
+  "max_players": 8,
+  "readers": {
+    "left": {
+      "bus": 0,
+      "device": 0,
+      "position": "Community Card 1",
+      "type": "community"
+    },
+    "right": {
+      "bus": 0,
+      "device": 1,
+      "position": "Community Card 2",
+      "type": "community"
+    }
+  }
+}

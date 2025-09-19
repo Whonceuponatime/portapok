@@ -4,11 +4,15 @@ A semi-rollable proof-of-concept poker table with two RC522 RFID readers and NTA
 
 ## Features
 
-- **Two RC522 readers** on shared SPI bus with unique chip selects
+- **Professional Web Interface** - Modern, responsive UI with real-time updates
+- **Scalable Architecture** - Configurable for multiple readers and poker table layouts
+- **Two RC522 readers** on shared SPI bus with unique chip selects (expandable)
 - **NTAG213 UID reading** with server-side card mapping
 - **Real-time card detection** via background polling threads
+- **Complete Deck Management** - Visual deck selector with used card tracking
 - **REST API** for card mapping and state monitoring
-- **Rollable design** - cloth can fold between the two reader spots
+- **Rollable design** - cloth can fold between reader spots
+- **Future-ready** - Easy expansion to full poker tables with player hands
 
 ## Hardware Requirements
 
@@ -61,10 +65,11 @@ pip3 install -r requirements.txt
 python3 poker_mvp_rc522.py
 ```
 
-2. **Access the API:**
+2. **Access the Professional Web Interface:**
    - Open browser to `http://<raspberrypi-ip>:8000/`
-   - View current state: `GET /state`
-   - View card mappings: `GET /cards`
+   - Real-time card monitoring with professional dashboard
+   - Interactive deck selector for easy card mapping
+   - Live statistics and uptime monitoring
 
 3. **Map cards to labels:**
 ```bash
@@ -87,29 +92,56 @@ curl http://<pi>:8000/cards
 
 ## API Endpoints
 
-- `GET /` - API documentation and available endpoints
-- `GET /state` - Current UIDs and labels per reader spot
-- `GET /cards` - Server-side UID to card label mapping
-- `POST /map` - Map a UID to a card label
-- `POST /clear` - Remove a UID from the mapping
-- `GET /ntag/read` - (Not implemented) Raw NTAG213 page read
-- `POST /ntag/write` - (Not implemented) Raw NTAG213 page write
+### Card Management
+- `GET /` - Professional web interface
+- `GET /api/state` - Current UIDs and labels per reader spot
+- `GET /api/cards` - Server-side UID to card label mapping
+- `POST /api/map` - Map a UID to a card label
+- `POST /api/clear` - Remove a UID from the mapping
+- `GET /api/config` - Get table configuration
+- `POST /api/config` - Update table configuration
 
-## Advanced: On-Tag Writing
+### NTAG213 Read/Write Operations
+- `GET /api/ntag/read?reader=left&page=4` - Read specific page from NTAG213
+- `POST /api/ntag/write` - Write data to NTAG213 page (hex or ASCII)
+- `GET /api/ntag/dump?reader=left` - Dump all readable pages
+- `POST /api/ntag/write_card` - Write card label to page 4
+- `GET /api/ntag/read_card?reader=left` - Read card label from page 4
 
-This MVP focuses on **UID reading + server-side mapping** for maximum reliability. For on-tag writes:
+### Legacy Endpoints (backward compatibility)
+- `GET /state`, `GET /cards`, `POST /map`, `POST /clear`
 
-### Option 1: Use your phone
-- Install "NFC Tools" app
-- Write small strings to NTAG213 page 4 (first user memory)
-- RC522 still reads UIDs; server doesn't need on-tag data
+## NTAG213 Read/Write Features ✨
 
-### Option 2: Raw RC522 writes (advanced)
-- Requires RC522 library with `transceive` + `CRC_A` support
-- Implement ISO14443A Type-2 operations:
-  - READ: `30 <page> CRC_A`
-  - WRITE: `A2 <page> d0 d1 d2 d3 CRC_A`
-- Only write pages 4–39 on NTAG213 (user memory)
+**Full NTAG213 support is now implemented!** This system provides both UID reading and complete on-tag read/write capabilities:
+
+### Web Interface Features
+- **Real-time page reading** - Read any page (4-39) from NTAG213 tags
+- **Flexible writing** - Write data in hex format or ASCII text
+- **Card label management** - Write/read card labels directly to/from tags
+- **Memory dumping** - Complete NTAG213 memory dump with formatted display
+- **Live results** - All operations show detailed results in the web interface
+
+### Technical Implementation
+- **Raw ISO14443A Type-2 commands** - Direct NTAG213 communication
+- **CRC_A calculation** - Proper error checking for all operations
+- **Page validation** - Safe writing only to user memory (pages 4-39)
+- **Dual reader support** - Independent operations on both readers
+- **Error handling** - Comprehensive error reporting and validation
+
+### Usage Examples
+```bash
+# Read page 4 from left reader
+curl "http://<pi>:8000/api/ntag/read?reader=left&page=4"
+
+# Write "ACE!" to page 4 on right reader
+curl -X POST http://<pi>:8000/api/ntag/write \
+  -H "Content-Type: application/json" \
+  -d '{"reader":"right","page":4,"data_ascii":"ACE!"}'
+
+# Dump all readable pages
+curl "http://<pi>:8000/api/ntag/dump?reader=left"
+```
 
 ## Next Steps
 
