@@ -28,7 +28,6 @@ except ImportError as e:
 MAP_FILE = Path("card_map.json")
 CONFIG_FILE = Path("table_config.json")
 POLL_INTERVAL = 0.12  # seconds
-I2C_ADDR = 0x24       # try 0x24 (common) — change to 0x48 if needed
 
 # Default configuration for expandable poker tables
 DEFAULT_CONFIG = {
@@ -77,15 +76,17 @@ STATE = {name: {
     "type": cfg.get("type", "pn532")
 } for name, cfg in READERS.items()}
 
-# Initialize PN532 (I2C)
+# Initialize PN532 (I2C) - using same settings as working test program
 pn532 = None
 if PN532_AVAILABLE:
     try:
-        i2c = busio.I2C(board.SCL, board.SDA)
-        pn532 = PN532_I2C(i2c, addr=I2C_ADDR, debug=False)
+        # Use explicit I2C settings that match your working test program
+        i2c = busio.I2C(board.SCL, board.SDA, frequency=100000)
+        pn532 = PN532_I2C(i2c, debug=False)  # Remove addr parameter - let it auto-detect
         ic, ver, rev, support = pn532.firmware_version
-        print(f"Found PN532 firmware {ver}.{rev} (IC {ic})")
+        print(f"Found PN532 with firmware version {ver}.{rev}")
         pn532.SAM_configuration()
+        print("PN532 initialized successfully!")
     except Exception as e:
         print(f"PN532 init failed: {e}")
         print("Check I2C wiring and run 'sudo i2cdetect -y 1' to verify address")
