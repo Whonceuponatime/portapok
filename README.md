@@ -1,47 +1,57 @@
-# RC522 Poker PoC
+# PN532 Poker PoC
 
-A semi-rollable proof-of-concept poker table with two RC522 RFID readers and NTAG213 stickers on real cards, driven by a Flask HTTP server on Raspberry Pi.
+A professional proof-of-concept poker table with PN532 NFC reader and NTAG213 stickers on real cards, driven by a Flask HTTP server on Raspberry Pi.
 
 ## Features
 
 - **Professional Web Interface** - Modern, responsive UI with real-time updates
-- **Scalable Architecture** - Configurable for multiple readers and poker table layouts
-- **Two RC522 readers** on shared SPI bus with unique chip selects (expandable)
-- **NTAG213 UID reading** with server-side card mapping
-- **Real-time card detection** via background polling threads
+- **Native PN532 Support** - Superior NFC performance with built-in NTAG213 commands
+- **Complete NTAG213 Operations** - Native read/write support without complex CRC calculations
+- **Real-time card detection** via optimized I2C polling
 - **Complete Deck Management** - Visual deck selector with used card tracking
 - **REST API** for card mapping and state monitoring
-- **Rollable design** - cloth can fold between reader spots
+- **Scalable Architecture** - Ready for multiple PN532 readers
 - **Future-ready** - Easy expansion to full poker tables with player hands
 
 ## Hardware Requirements
 
 - Raspberry Pi (3B+/4/5 recommended)
-- 1x RC522 RFID reader module (expandable to multiple)
+- 1x PN532 NFC/RFID module (I2C or SPI)
 - NTAG213 stickers/cards
 - Jumper wires for connections
 - Cloth surface for rollable poker table
 
-**Note:** Current implementation uses a single RC522 reader. The web interface supports multiple reader positions, but they all map to the same physical reader for now. See [Multiple Reader Setup](#multiple-reader-setup) for expansion options.
+**Note:** PN532 provides superior NFC performance compared to RC522, with native NTAG213 support and no complex CRC calculations required.
 
 ## Wiring
 
-Enable SPI first:
+### PN532 I2C Setup (Recommended)
+
+1. **Set PN532 jumpers for I2C mode:**
+   - **SET0** = High (H)
+   - **SET1** = Low (L)
+
+2. **Enable I2C on Raspberry Pi:**
 ```bash
 sudo raspi-config
-# Interface Options → SPI → Enable → reboot
+# Interface Options → I2C → Enable → Reboot
 ```
 
-### Single RC522 Reader Wiring:
-- **3V3** → 3.3V (pin 1)
-- **GND** → GND (pin 6)  
-- **SCK** → GPIO11/SCLK (pin 23)
-- **MOSI** → GPIO10/MOSI (pin 19)
-- **MISO** → GPIO9/MISO (pin 21)
-- **SDA/SS** → CE0 (GPIO8, pin 24)
-- **RST** → GPIO25 (pin 22)
+3. **Wire PN532 to Raspberry Pi:**
 
-*For multiple readers, see [Multiple Reader Setup](#multiple-reader-setup) section below.*
+| PN532 Pin | Pi Pin | GPIO | Description |
+|-----------|--------|------|-------------|
+| **VDD/5V** | Pin 2 | 5V | Power (can use 3.3V on some boards) |
+| **GND** | Pin 6 | GND | Ground |
+| **SDA** | Pin 3 | GPIO2 | I2C Data |
+| **SCL** | Pin 5 | GPIO3 | I2C Clock |
+
+4. **Verify PN532 detection:**
+```bash
+sudo apt install -y i2c-tools
+sudo i2cdetect -y 1
+```
+Look for address `24` or `48`. If not found, check jumpers and wiring.
 
 ## Installation
 
@@ -60,7 +70,7 @@ pip3 install -r requirements.txt
 
 1. **Start the server:**
 ```bash
-python3 poker_mvp_rc522.py
+python3 pn532_poker_server.py
 ```
 
 2. **Access the Professional Web Interface:**
@@ -99,77 +109,71 @@ curl http://<pi>:8000/cards
 - `GET /api/config` - Get table configuration
 - `POST /api/config` - Update table configuration
 
-### NTAG213 Read/Write Operations
-- `GET /api/ntag/read?reader=left&page=4` - Read specific page from NTAG213
-- `POST /api/ntag/write` - Write data to NTAG213 page (hex or ASCII)
-- `GET /api/ntag/dump?reader=left` - Dump all readable pages
-- `POST /api/ntag/write_card` - Write card label to page 4
-- `GET /api/ntag/read_card?reader=left` - Read card label from page 4
+### PN532 NTAG213 Operations
+- `GET /ntag/read?page=4` - Read specific page from NTAG213
+- `POST /ntag/write` - Write 4-byte hex data to NTAG213 page
+- Native PN532 `ntag2xx_read_block()` and `ntag2xx_write_block()` support
+- No complex CRC calculations required
 
 ### Legacy Endpoints (backward compatibility)
 - `GET /state`, `GET /cards`, `POST /map`, `POST /clear`
 
-## NTAG213 Read/Write Features ✨
+## PN532 NTAG213 Features ✨
 
-**Full NTAG213 support is now implemented!** This system provides both UID reading and complete on-tag read/write capabilities:
+**Native PN532 NTAG213 support!** Superior to RC522 with built-in NFC commands:
 
 ### Web Interface Features
 - **Real-time page reading** - Read any page (4-39) from NTAG213 tags
-- **Flexible writing** - Write data in hex format or ASCII text
-- **Card label management** - Write/read card labels directly to/from tags
-- **Memory dumping** - Complete NTAG213 memory dump with formatted display
+- **Native hex writing** - Write 4-byte hex data directly to pages
+- **Card label management** - Write/read card labels with automatic encoding
 - **Live results** - All operations show detailed results in the web interface
+- **Professional PN532 styling** - Dedicated UI for PN532 operations
 
-### Technical Implementation
-- **Raw ISO14443A Type-2 commands** - Direct NTAG213 communication
-- **CRC_A calculation** - Proper error checking for all operations
-- **Page validation** - Safe writing only to user memory (pages 4-39)
-- **Dual reader support** - Independent operations on both readers
+### Technical Advantages
+- **Native NTAG213 commands** - Uses PN532's built-in `ntag2xx_*` functions
+- **No CRC calculations** - PN532 handles all low-level protocol details
+- **Superior NFC performance** - Better range and reliability than RC522
+- **I2C communication** - Simpler wiring, more reliable than SPI
 - **Error handling** - Comprehensive error reporting and validation
 
 ### Usage Examples
 ```bash
-# Read page 4 from left reader
-curl "http://<pi>:8000/api/ntag/read?reader=left&page=4"
+# Read page 4
+curl "http://<pi>:8000/ntag/read?page=4"
 
-# Write "ACE!" to page 4 on right reader
-curl -X POST http://<pi>:8000/api/ntag/write \
+# Write hex data to page 4
+curl -X POST http://<pi>:8000/ntag/write \
   -H "Content-Type: application/json" \
-  -d '{"reader":"right","page":4,"data_ascii":"ACE!"}'
-
-# Dump all readable pages
-curl "http://<pi>:8000/api/ntag/dump?reader=left"
+  -d '{"page":4,"data_hex":"41434521"}'
 ```
 
-## Multiple Reader Setup
+## Multiple PN532 Reader Setup
 
-The current implementation uses a single RC522 reader mapped to all positions. To add multiple physical readers, choose one of these approaches:
+The current implementation uses a single PN532 reader. To add multiple PN532 readers:
 
-### Option 1: Advanced RC522 Library
-Use a library like `pi-rc522` that supports multiple SPI devices:
-```bash
-pip3 uninstall mfrc522
-pip3 install pi-rc522
-```
-Then update the reader initialization code to use multiple SPI buses.
+### Option 1: Multiple I2C Addresses
+Some PN532 boards support address selection:
+- Use PN532 boards with different I2C addresses (0x24, 0x48)
+- Connect multiple readers to the same I2C bus
+- Update code to poll multiple addresses
 
-### Option 2: GPIO Multiplexing
-Use GPIO pins to control multiple RC522 reset lines, enabling one reader at a time:
-- Connect all readers to shared SPI bus
-- Use separate GPIO pins for each reader's RST line
-- Implement reader switching in software
+### Option 2: I2C Multiplexer
+Use an I2C multiplexer (like TCA9548A) for more readers:
+- Connect multiplexer to Pi's I2C bus
+- Each PN532 on a separate multiplexer channel
+- Switch channels to access different readers
 
-### Option 3: I2C-to-SPI Bridges
-Use I2C-to-SPI bridge chips (like SC18IS602B) to add more SPI buses:
-- Connect bridges to I2C bus
-- Each bridge provides independent SPI bus for RC522
-- Address multiple readers via I2C
+### Option 3: Multiple I2C Buses
+Use Pi's multiple I2C interfaces:
+- I2C0 (GPIO0/1) and I2C1 (GPIO2/3)
+- Some Pi models have additional I2C buses
+- Each bus can have multiple PN532s with different addresses
 
-### Option 4: Multiple Raspberry Pis
-For large poker tables, use multiple Pis with centralized coordination:
-- Each Pi handles 2-4 readers
-- Network communication between Pis
-- Central server aggregates all data
+### Option 4: Hybrid Setup
+Mix PN532 (I2C) with other NFC readers:
+- PN532 for primary positions (better performance)
+- Additional readers on SPI or UART
+- Unified software interface
 
 ## Next Steps
 
@@ -180,7 +184,15 @@ For large poker tables, use multiple Pis with centralized coordination:
 
 ## Troubleshooting
 
-- **No cards detected:** Check SPI is enabled and wiring is correct
-- **Import errors:** Ensure all dependencies installed with `pip3 install -r requirements.txt`
-- **Permission errors:** May need to run with `sudo` for GPIO access
+- **No cards detected:** 
+  - Check I2C is enabled: `sudo raspi-config`
+  - Verify PN532 detection: `sudo i2cdetect -y 1`
+  - Check PN532 jumpers for I2C mode (SET0=H, SET1=L)
+  - Verify wiring: VDD, GND, SDA, SCL
+- **Import errors:** Install dependencies: `pip3 install -r requirements.txt`
+- **PN532 init failed:** 
+  - Try different I2C address (change `I2C_ADDR = 0x48` in code)
+  - Check power supply (5V recommended)
+  - Verify jumper settings
+- **NTAG operations fail:** Update library: `pip3 install --upgrade adafruit-circuitpython-pn532`
 - **Network issues:** Check Pi's IP address with `hostname -I`

@@ -1,18 +1,11 @@
 {
-  "table_name": "Poker Table Alpha - Test Setup",
+  "table_name": "PN532 Poker Table Alpha",
   "max_players": 8,
   "readers": {
-    "left": {
-      "bus": 0,
-      "device": 0,
-      "position": "Community Card 1",
-      "type": "community"
-    },
-    "right": {
-      "bus": 0,
-      "device": 1,
-      "position": "Community Card 2",
-      "type": "community"
+    "main": {
+      "type": "pn532",
+      "position": "Community Cards",
+      "i2c_addr": 36
     }
   }
 }
