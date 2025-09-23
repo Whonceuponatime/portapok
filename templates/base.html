@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>{% block title %}PokerPro RFID{% endblock %}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -77,6 +77,92 @@
         }
         
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+                margin: 0;
+            }
+            
+            .nav {
+                flex-direction: column;
+                padding: 10px;
+                gap: 5px;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                gap: 5px;
+                width: 100%;
+            }
+            
+            .nav-link {
+                padding: 12px 16px;
+                font-size: 1em;
+                text-align: center;
+                border-radius: 8px;
+                justify-content: center;
+            }
+            
+            .page-header {
+                padding: 20px 0;
+                text-align: center;
+            }
+            
+            .page-title {
+                font-size: 1.8em;
+            }
+            
+            .page-subtitle {
+                font-size: 0.9em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                margin: 20px 0;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-value {
+                font-size: 1.5em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+            
+            .nav {
+                padding: 5px;
+            }
+            
+            .nav-link {
+                padding: 10px 12px;
+                font-size: 0.9em;
+            }
+            
+            .page-title {
+                font-size: 1.5em;
+            }
+            
+            .page-subtitle {
+                font-size: 0.8em;
+            }
+            
+            .stat-card {
+                padding: 12px;
+            }
+            
+            .stat-value {
+                font-size: 1.3em;
+            }
+        }
         .page-header { text-align: center; margin: 30px 0; }
         .page-title { 
             font-size: 2.2em; 

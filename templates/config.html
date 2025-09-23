@@ -25,6 +25,83 @@
     gap: 15px;
     align-items: end;
 }
+
+/* Responsive Design for Config */
+@media (max-width: 768px) {
+    .config-section {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .form-group input, .form-group select {
+        padding: 12px;
+        font-size: 1em;
+        width: 100%;
+    }
+    
+    .btn {
+        padding: 12px 20px;
+        font-size: 1em;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .card-info-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .card-title {
+        font-size: 1.1em;
+    }
+    
+    .card-status {
+        font-size: 0.8em;
+        padding: 4px 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .config-section {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .form-group input, .form-group select {
+        padding: 10px;
+        font-size: 0.9em;
+    }
+    
+    .btn {
+        padding: 10px 16px;
+        font-size: 0.9em;
+    }
+    
+    .card-title {
+        font-size: 1em;
+    }
+    
+    .card-status {
+        font-size: 0.7em;
+    }
+}
 label {
     display: block;
     margin-bottom: 5px;
