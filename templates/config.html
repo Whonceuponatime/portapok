@@ -194,10 +194,25 @@ button:hover {
             </div>
         </div>
         
+        <!-- Current Hand Display -->
+        <div id="handDataSection" style="display: none; margin-top: 20px; padding: 20px; background: rgba(20, 20, 35, 0.6); border-radius: 10px; border: 1px solid rgba(0, 212, 255, 0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 style="color: #00d4ff; margin: 0;">🃏 Current Player Hand</h4>
+                <button onclick="refreshHandData()" style="padding: 5px 10px; font-size: 0.8em; background: linear-gradient(45deg, #00d4ff, #0084ff);">
+                    🔄 Refresh
+                </button>
+            </div>
+            
+            <div id="handStatus" style="margin-bottom: 15px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 8px;">
+                <div style="color: #ff9800; font-weight: bold;" id="stabilityStatus">Checking stability...</div>
+                <div style="color: #8892b0; font-size: 0.9em;" id="stabilityTimer">-</div>
+            </div>
+        </div>
+        
         <!-- Current Card Data Display -->
         <div id="cardDataSection" style="display: none; margin-top: 20px; padding: 20px; background: rgba(20, 20, 35, 0.6); border-radius: 10px; border: 1px solid rgba(0, 212, 255, 0.2);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h4 style="color: #00d4ff; margin: 0;">📋 Current Card Data</h4>
+                <h4 style="color: #00d4ff; margin: 0;">📋 Individual Card Data</h4>
                 <button onclick="refreshCardData()" style="padding: 5px 10px; font-size: 0.8em; background: linear-gradient(45deg, #00d4ff, #0084ff);">
                     🔄 Refresh
                 </button>
@@ -394,26 +409,36 @@ button:hover {
         });
     }
 
-    // Check PN532 status and load card data
+    // Check PN532 status and load hand/card data
     async function checkPN532Status() {
         try {
-            const response = await fetch('/api/state');
-            const data = await response.json();
+            const [stateRes, handRes] = await Promise.all([
+                fetch('/api/state'),
+                fetch('/api/current_hand')
+            ]);
+            
+            const state = await stateRes.json();
+            const hand = await handRes.json();
             
             const statusIndicator = document.getElementById('pn532Status');
             const statusInfo = document.getElementById('pn532Info');
             
-            const hasActiveReader = Object.values(data).some(reader => reader.last_seen);
+            const hasActiveReader = Object.values(state).some(reader => reader.last_seen);
             
             if (hasActiveReader) {
                 statusIndicator.classList.add('online');
                 statusInfo.textContent = 'Connected and detecting cards';
-                // Try to load current card data
+                
+                // Load hand data
+                loadCurrentHandData(hand);
+                
+                // Load individual card data if available
                 loadCurrentCardData();
             } else {
                 statusIndicator.classList.remove('online');
                 statusInfo.textContent = 'Connected but no cards detected';
-                // Hide card data section
+                // Hide sections
+                document.getElementById('handDataSection').style.display = 'none';
                 document.getElementById('cardDataSection').style.display = 'none';
             }
         } catch (error) {
@@ -421,7 +446,68 @@ button:hover {
             const statusInfo = document.getElementById('pn532Info');
             statusIndicator.classList.remove('online');
             statusInfo.textContent = 'Connection error';
+            document.getElementById('handDataSection').style.display = 'none';
             document.getElementById('cardDataSection').style.display = 'none';
+        }
+    }
+
+    // Load current hand data
+    function loadCurrentHandData(hand) {
+        const handSection = document.getElementById('handDataSection');
+        const stabilityStatus = document.getElementById('stabilityStatus');
+        const stabilityTimer = document.getElementById('stabilityTimer');
+        
+        if (hand.hand_size > 0) {
+            handSection.style.display = 'block';
+            
+            if (hand.is_stable) {
+                if (hand.hand_size === 2) {
+                    const labels = hand.hand_cards.map(c => c.label || 'Unknown').join(' + ');
+                    stabilityStatus.textContent = `Stable Player Hand: ${labels}`;
+                    stabilityStatus.style.color = '#00ff88';
+                } else if (hand.hand_size === 1) {
+                    const label = hand.hand_cards[0].label || 'Unknown';
+                    stabilityStatus.textContent = `Single Card: ${label}`;
+                    stabilityStatus.style.color = '#00d4ff';
+                } else {
+                    stabilityStatus.textContent = `${hand.hand_size} Cards Detected`;
+                    stabilityStatus.style.color = '#ff9800';
+                }
+                
+                const stableTime = hand.last_stable ? 
+                    Math.round((Date.now() / 1000) - hand.last_stable) : 0;
+                stabilityTimer.textContent = `Stable for ${stableTime} seconds`;
+            } else {
+                stabilityStatus.textContent = 'Cards detected, waiting for stability...';
+                stabilityStatus.style.color = '#ff9800';
+                stabilityTimer.textContent = 'Need 3 seconds of consistent detection';
+            }
+        } else if (hand.fold_start) {
+            handSection.style.display = 'block';
+            const foldTime = Math.round((Date.now() / 1000) - hand.fold_start);
+            stabilityStatus.textContent = 'Cards removed - waiting for fold confirmation';
+            stabilityStatus.style.color = '#ff4757';
+            stabilityTimer.textContent = `Gone for ${foldTime}s (need 5s to fold)`;
+        } else {
+            handSection.style.display = 'none';
+        }
+    }
+
+    // Manual refresh hand data
+    async function refreshHandData() {
+        const refreshBtn = event.target;
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = '⏳ Reading...';
+        
+        try {
+            const response = await fetch('/api/current_hand');
+            const hand = await response.json();
+            loadCurrentHandData(hand);
+        } finally {
+            setTimeout(() => {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = '🔄 Refresh';
+            }, 1000);
         }
     }
 

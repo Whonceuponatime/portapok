@@ -216,27 +216,62 @@
     }
     setInterval(updateUptime, 1000);
     
-    // Update stats
+    // Update stats and hand display
     async function updateStats() {
         try {
-            const [stateRes, cardsRes] = await Promise.all([
+            const [stateRes, cardsRes, handRes] = await Promise.all([
                 fetch('/api/state'),
-                fetch('/api/cards')
+                fetch('/api/cards'),
+                fetch('/api/current_hand')
             ]);
             
             const state = await stateRes.json();
             const cards = await cardsRes.json();
+            const hand = await handRes.json();
             
-            let activeCount = 0;
-            Object.values(state).forEach(reader => {
-                if (reader.uid && reader.label) activeCount++;
-            });
+            // Update reader positions with hand information
+            updateReaderPositions(state, hand);
+            
+            let activeCount = hand.is_stable ? 1 : 0;
             
             document.getElementById('activeCards').textContent = activeCount;
             document.getElementById('totalMapped').textContent = Object.keys(cards).length;
             
         } catch (error) {
             console.error('Failed to update stats:', error);
+        }
+    }
+    
+    // Update reader positions with dual-card support
+    function updateReaderPositions(state, hand) {
+        const mainReader = document.querySelector('.reader-main');
+        
+        if (hand.is_stable && hand.hand_cards.length > 0) {
+            mainReader.classList.add('active');
+            
+            if (hand.hand_cards.length === 2) {
+                // Player hand - show both cards
+                const labels = hand.hand_cards.map(c => c.label || 'Unknown').join(' + ');
+                mainReader.title = `Player Hand: ${labels}`;
+                mainReader.textContent = 'HAND';
+                mainReader.style.background = 'linear-gradient(45deg, #00ff88, #00cc6a)';
+            } else if (hand.hand_cards.length === 1) {
+                // Single card
+                const label = hand.hand_cards[0].label || 'Unknown';
+                mainReader.title = `Single Card: ${label}`;
+                mainReader.textContent = 'CARD';
+                mainReader.style.background = 'linear-gradient(45deg, #00d4ff, #0084ff)';
+            } else {
+                // Multiple cards
+                mainReader.title = `${hand.hand_cards.length} Cards Detected`;
+                mainReader.textContent = 'MULTI';
+                mainReader.style.background = 'linear-gradient(45deg, #ff9800, #f57c00)';
+            }
+        } else {
+            mainReader.classList.remove('active');
+            mainReader.title = 'Main Reader - No Stable Hand';
+            mainReader.textContent = 'MAIN';
+            mainReader.style.background = 'linear-gradient(45deg, #00d4ff, #0084ff)';
         }
     }
     

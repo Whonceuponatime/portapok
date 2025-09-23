@@ -76,8 +76,15 @@ STATE = {name: {
     "type": cfg.get("type", "pn532")
 } for name, cfg in READERS.items()}
 
-# Global variable to store last detected UID for auto-capture
+# Global variables for dual-card overlay detection
 LAST_DETECTED_UID = None
+CARD_DETECTION_HISTORY = []  # History of recent card detections
+CURRENT_HAND = {"cards": [], "last_stable": None, "fold_start": None}
+
+# Configuration for card stability and delays
+CARD_STABILITY_TIME = 3.0    # Seconds cards must be stable before showing
+FOLD_DELAY_TIME = 5.0        # Seconds cards must be gone before considering folded
+MAX_HISTORY_SIZE = 50        # Maximum detection history to keep
 
 # Initialize PN532 (I2C) - using same settings as working test program
 pn532 = None
@@ -97,10 +104,10 @@ if PN532_AVAILABLE:
 else:
     print("PN532 libraries not installed - running in demo mode")
 
-# Enhanced poll loop with auto-capture
+# Enhanced poll loop with dual-card detection and stability delays
 stop_flag = False
 def poll_loop():
-    global LAST_DETECTED_UID
+    global LAST_DETECTED_UID, CARD_DETECTION_HISTORY, CURRENT_HAND
     last_uid = None
     reader_name = list(READERS.keys())[0]  # Use first configured reader
     
@@ -116,27 +123,122 @@ def poll_loop():
             # transient comms error
             uid = None
             
+        current_time = time.time()
+        
         if uid is not None:
             # uid is bytes -> format as uppercase HEX (no 0x, contiguous)
             uhex = "".join(f"{b:02X}" for b in uid)
+            
+            # Add to detection history
+            CARD_DETECTION_HISTORY.append({
+                "uid": uhex,
+                "label": UID_TO_LABEL.get(uhex),
+                "timestamp": current_time
+            })
+            
+            # Keep history size manageable
+            if len(CARD_DETECTION_HISTORY) > MAX_HISTORY_SIZE:
+                CARD_DETECTION_HISTORY = CARD_DETECTION_HISTORY[-MAX_HISTORY_SIZE:]
+                
         else:
             uhex = None
             
+        # Process dual-card detection with stability
+        process_card_stability(current_time)
+        
         if uhex != last_uid:
             last_uid = uhex
-            label = UID_TO_LABEL.get(uhex)
-            STATE[reader_name].update({
-                "uid": uhex, 
-                "label": label, 
-                "last_seen": time.time() if uhex else None
-            })
             
-            # Update global variable for auto-capture
+            # Update global variable for auto-capture (most recent detection)
             LAST_DETECTED_UID = uhex
             
-            print(f"[{reader_name}] {uhex or '(no card)'} {('=> '+label) if label else ''}")
-            
+            if uhex:
+                label = UID_TO_LABEL.get(uhex)
+                print(f"[{reader_name}] {uhex} => {label if label else 'unmapped'}")
+                
         time.sleep(POLL_INTERVAL)
+
+def process_card_stability(current_time):
+    """Process card detection history to determine stable hands"""
+    global CURRENT_HAND
+    
+    # Get recent detections (last 10 seconds)
+    recent_detections = [
+        d for d in CARD_DETECTION_HISTORY 
+        if current_time - d["timestamp"] <= 10.0
+    ]
+    
+    if not recent_detections:
+        # No recent detections - check for fold
+        if CURRENT_HAND["cards"] and CURRENT_HAND["fold_start"] is None:
+            CURRENT_HAND["fold_start"] = current_time
+        elif CURRENT_HAND["fold_start"] and (current_time - CURRENT_HAND["fold_start"]) >= FOLD_DELAY_TIME:
+            # Cards have been gone long enough - consider folded
+            if CURRENT_HAND["cards"]:
+                print(f"[FOLD] Player folded: {[card['label'] for card in CURRENT_HAND['cards']]}")
+                CURRENT_HAND = {"cards": [], "last_stable": None, "fold_start": None}
+        return
+    
+    # Reset fold timer if we have recent detections
+    CURRENT_HAND["fold_start"] = None
+    
+    # Find unique cards in recent detections
+    unique_cards = {}
+    for detection in recent_detections:
+        uid = detection["uid"]
+        if uid not in unique_cards:
+            unique_cards[uid] = {
+                "uid": uid,
+                "label": detection["label"],
+                "first_seen": detection["timestamp"],
+                "last_seen": detection["timestamp"]
+            }
+        else:
+            unique_cards[uid]["last_seen"] = detection["timestamp"]
+    
+    # Check for stable cards (consistently detected for CARD_STABILITY_TIME)
+    stable_cards = []
+    for card in unique_cards.values():
+        if (current_time - card["first_seen"]) >= CARD_STABILITY_TIME:
+            stable_cards.append(card)
+    
+    # Sort by UID for consistent ordering
+    stable_cards.sort(key=lambda x: x["uid"])
+    
+    # Check if this is a new stable configuration
+    current_uids = [card["uid"] for card in CURRENT_HAND["cards"]]
+    stable_uids = [card["uid"] for card in stable_cards]
+    
+    if stable_uids != current_uids:
+        CURRENT_HAND["cards"] = stable_cards
+        CURRENT_HAND["last_stable"] = current_time
+        
+        if stable_cards:
+            labels = [card["label"] or "unmapped" for card in stable_cards]
+            print(f"[STABLE HAND] {len(stable_cards)} cards: {labels}")
+        else:
+            print(f"[HAND CLEARED]")
+    
+    # Update reader state with stable hand
+    reader_name = list(READERS.keys())[0]
+    if stable_cards:
+        # Show primary card in state for backward compatibility
+        primary_card = stable_cards[0]
+        STATE[reader_name].update({
+            "uid": primary_card["uid"],
+            "label": primary_card["label"],
+            "last_seen": current_time,
+            "hand_size": len(stable_cards),
+            "hand_cards": stable_cards
+        })
+    else:
+        STATE[reader_name].update({
+            "uid": None,
+            "label": None,
+            "last_seen": None,
+            "hand_size": 0,
+            "hand_cards": []
+        })
 
 # Start background polling thread
 t = threading.Thread(target=poll_loop, daemon=True)
@@ -182,6 +284,35 @@ def get_config():
 def get_last_uid():
     """Get the last detected UID for auto-capture"""
     return jsonify({"uid": LAST_DETECTED_UID})
+
+@app.get("/api/current_hand")
+def get_current_hand():
+    """Get current stable hand information"""
+    return jsonify({
+        "hand_cards": CURRENT_HAND["cards"],
+        "hand_size": len(CURRENT_HAND["cards"]),
+        "last_stable": CURRENT_HAND["last_stable"],
+        "fold_start": CURRENT_HAND["fold_start"],
+        "is_stable": len(CURRENT_HAND["cards"]) > 0,
+        "timestamp": time.time()
+    })
+
+@app.get("/api/detection_history")
+def get_detection_history():
+    """Get recent card detection history for debugging"""
+    current_time = time.time()
+    recent_history = [
+        {
+            **detection,
+            "age_seconds": current_time - detection["timestamp"]
+        }
+        for detection in CARD_DETECTION_HISTORY[-20:]  # Last 20 detections
+    ]
+    return jsonify({
+        "history": recent_history,
+        "total_detections": len(CARD_DETECTION_HISTORY),
+        "current_hand": CURRENT_HAND
+    })
 
 @app.get("/api/current_card_data")
 def get_current_card_data():
