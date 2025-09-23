@@ -3,6 +3,168 @@
 {% block title %}{{ table_name }} - Poker Table{% endblock %}
 
 {% block extra_styles %}
+/* Playing Card Styles */
+.player-hand-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 10;
+}
+
+.hand-label {
+    color: #00d4ff;
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
+
+.cards-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.playing-card {
+    width: 60px;
+    height: 84px;
+    border-radius: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.playing-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.card-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Face-down card (back) */
+.card-back {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    border: 2px solid #4a90e2;
+}
+
+.card-back-pattern {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    background: repeating-linear-gradient(
+        45deg,
+        #4a90e2,
+        #4a90e2 2px,
+        #2a5298 2px,
+        #2a5298 4px
+    );
+    border-radius: 4px;
+    opacity: 0.7;
+}
+
+/* Face-up card (front) */
+.card-front {
+    background: white;
+    border: 2px solid #333;
+    color: #333;
+}
+
+.card-front.red {
+    color: #d32f2f;
+}
+
+.card-front.black {
+    color: #333;
+}
+
+.card-rank {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.card-suit {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.card-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    line-height: 1;
+}
+
+.card-bottom-rank {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+    transform: rotate(180deg);
+}
+
+.card-bottom-suit {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    font-size: 12px;
+    line-height: 1;
+    transform: rotate(180deg);
+}
+
+/* Folded state */
+.playing-card.folded {
+    opacity: 0.3;
+    filter: grayscale(100%);
+    transform: rotate(5deg);
+}
+
+.playing-card.folded:hover {
+    transform: rotate(5deg) translateY(-5px);
+}
+
+/* Hand status */
+.hand-status {
+    color: #8892b0;
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+.hand-status.stable {
+    color: #00ff88;
+}
+
+.hand-status.detecting {
+    color: #ff9800;
+}
+
+.hand-status.folded {
+    color: #ff4757;
+}
+
 .poker-table-container {
     display: flex;
     justify-content: center;
@@ -152,9 +314,27 @@
                 <div style="font-size: 0.9em; opacity: 0.8;">PN532 RFID System</div>
             </div>
             
+            <!-- Player Hand Display -->
+            <div class="player-hand-container">
+                <div class="hand-label">Player Hand</div>
+                <div class="cards-container" id="playerCards">
+                    <div class="playing-card card-back" id="card1">
+                        <div class="card-inner">
+                            <div class="card-back-pattern"></div>
+                        </div>
+                    </div>
+                    <div class="playing-card card-back" id="card2">
+                        <div class="card-inner">
+                            <div class="card-back-pattern"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hand-status" id="handStatus">Waiting for cards...</div>
+            </div>
+            
             <!-- Reader positions -->
-            <div class="reader-position reader-main active" title="Main Reader - Community Cards" onclick="configureReader('main')">
-                MAIN
+            <div class="reader-position reader-main" title="Main Reader - Player Hand" onclick="configureReader('main')">
+                RFID
             </div>
             <div class="reader-position reader-p1" title="Player 1 Position" onclick="configureReader('p1')">P1</div>
             <div class="reader-position reader-p2" title="Player 2 Position" onclick="configureReader('p2')">P2</div>
@@ -242,37 +422,132 @@
         }
     }
     
-    // Update reader positions with dual-card support
+    // Update reader positions and card display
     function updateReaderPositions(state, hand) {
         const mainReader = document.querySelector('.reader-main');
         
+        // Update RFID reader status
         if (hand.is_stable && hand.hand_cards.length > 0) {
             mainReader.classList.add('active');
-            
-            if (hand.hand_cards.length === 2) {
-                // Player hand - show both cards
-                const labels = hand.hand_cards.map(c => c.label || 'Unknown').join(' + ');
-                mainReader.title = `Player Hand: ${labels}`;
-                mainReader.textContent = 'HAND';
-                mainReader.style.background = 'linear-gradient(45deg, #00ff88, #00cc6a)';
-            } else if (hand.hand_cards.length === 1) {
-                // Single card
-                const label = hand.hand_cards[0].label || 'Unknown';
-                mainReader.title = `Single Card: ${label}`;
-                mainReader.textContent = 'CARD';
-                mainReader.style.background = 'linear-gradient(45deg, #00d4ff, #0084ff)';
-            } else {
-                // Multiple cards
-                mainReader.title = `${hand.hand_cards.length} Cards Detected`;
-                mainReader.textContent = 'MULTI';
-                mainReader.style.background = 'linear-gradient(45deg, #ff9800, #f57c00)';
-            }
+            mainReader.textContent = 'ACTIVE';
+            mainReader.style.background = 'linear-gradient(45deg, #00ff88, #00cc6a)';
         } else {
             mainReader.classList.remove('active');
-            mainReader.title = 'Main Reader - No Stable Hand';
-            mainReader.textContent = 'MAIN';
+            mainReader.textContent = 'RFID';
             mainReader.style.background = 'linear-gradient(45deg, #00d4ff, #0084ff)';
         }
+        
+        // Update card display
+        updateCardDisplay(hand);
+    }
+    
+    // Update the visual card display
+    function updateCardDisplay(hand) {
+        const card1 = document.getElementById('card1');
+        const card2 = document.getElementById('card2');
+        const handStatus = document.getElementById('handStatus');
+        
+        // Reset cards to face-down
+        card1.className = 'playing-card card-back';
+        card2.className = 'playing-card card-back';
+        card1.innerHTML = '<div class="card-inner"><div class="card-back-pattern"></div></div>';
+        card2.innerHTML = '<div class="card-inner"><div class="card-back-pattern"></div></div>';
+        
+        // Remove folded state
+        card1.classList.remove('folded');
+        card2.classList.remove('folded');
+        
+        if (hand.fold_start) {
+            // Cards are being removed - show fold progress
+            const foldTime = Math.round((Date.now() / 1000) - hand.fold_start);
+            handStatus.textContent = `Cards removed... (${foldTime}s/5s to fold)`;
+            handStatus.className = 'hand-status folded';
+            
+            // Show previous cards as folded
+            if (hand.hand_cards.length > 0) {
+                displayCards(hand.hand_cards, true); // true = folded
+            }
+        } else if (hand.hand_cards.length > 0) {
+            if (hand.is_stable) {
+                // Stable hand - show face-up cards
+                displayCards(hand.hand_cards, false);
+                handStatus.textContent = `Stable hand: ${hand.hand_cards.map(c => c.label || 'Unknown').join(' + ')}`;
+                handStatus.className = 'hand-status stable';
+            } else {
+                // Cards detected but not stable yet
+                displayCards(hand.hand_cards, false);
+                handStatus.textContent = 'Cards detected, waiting for stability...';
+                handStatus.className = 'hand-status detecting';
+            }
+        } else {
+            // No cards
+            handStatus.textContent = 'Waiting for cards...';
+            handStatus.className = 'hand-status';
+        }
+    }
+    
+    // Display cards (face-up or folded)
+    function displayCards(cards, isFolded = false) {
+        const card1 = document.getElementById('card1');
+        const card2 = document.getElementById('card2');
+        
+        // Show first card
+        if (cards.length >= 1) {
+            const card1Data = parseCardLabel(cards[0].label || 'Unknown');
+            card1.className = `playing-card card-front ${card1Data.color}`;
+            if (isFolded) card1.classList.add('folded');
+            card1.innerHTML = createCardHTML(card1Data);
+        }
+        
+        // Show second card
+        if (cards.length >= 2) {
+            const card2Data = parseCardLabel(cards[1].label || 'Unknown');
+            card2.className = `playing-card card-front ${card2Data.color}`;
+            if (isFolded) card2.classList.add('folded');
+            card2.innerHTML = createCardHTML(card2Data);
+        }
+    }
+    
+    // Parse card label (e.g., "A♠", "K♥") into components
+    function parseCardLabel(label) {
+        const suitMap = {
+            '♠': { symbol: '♠', color: 'black' },
+            '♥': { symbol: '♥', color: 'red' },
+            '♦': { symbol: '♦', color: 'red' },
+            '♣': { symbol: '♣', color: 'black' }
+        };
+        
+        // Extract rank and suit
+        const match = label.match(/^([A-Z0-9]+)([♠♥♦♣])$/);
+        if (match) {
+            const rank = match[1];
+            const suit = suitMap[match[2]];
+            return {
+                rank: rank,
+                suit: suit.symbol,
+                color: suit.color
+            };
+        }
+        
+        // Fallback for unknown format
+        return {
+            rank: label,
+            suit: '?',
+            color: 'black'
+        };
+    }
+    
+    // Create HTML for a face-up card
+    function createCardHTML(cardData) {
+        return `
+            <div class="card-inner">
+                <div class="card-rank">${cardData.rank}</div>
+                <div class="card-suit">${cardData.suit}</div>
+                <div class="card-center">${cardData.suit}</div>
+                <div class="card-bottom-rank">${cardData.rank}</div>
+                <div class="card-bottom-suit">${cardData.suit}</div>
+            </div>
+        `;
     }
     
     // Quick actions
