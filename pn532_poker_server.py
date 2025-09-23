@@ -183,6 +183,63 @@ def get_last_uid():
     """Get the last detected UID for auto-capture"""
     return jsonify({"uid": LAST_DETECTED_UID})
 
+@app.get("/api/current_card_data")
+def get_current_card_data():
+    """Get detailed data from the currently detected card"""
+    if not LAST_DETECTED_UID or pn532 is None:
+        return jsonify({"error": "No card detected or PN532 not available"}), 404
+    
+    try:
+        card_data = {}
+        errors = []
+        
+        # Read key pages from the NTAG213
+        important_pages = {
+            0: "UID Header",
+            1: "UID Continuation", 
+            2: "UID End + Internal",
+            3: "Capability Container",
+            4: "User Data (Page 4)",
+            5: "User Data (Page 5)",
+            6: "User Data (Page 6)",
+            7: "User Data (Page 7)"
+        }
+        
+        for page, description in important_pages.items():
+            try:
+                data = pn532.ntag2xx_read_block(page)
+                card_data[page] = {
+                    "description": description,
+                    "data": list(data),
+                    "hex": "".join(f"{b:02X}" for b in data),
+                    "ascii": ''.join(chr(b) if 32 <= b <= 126 else '.' for b in data)
+                }
+            except Exception as e:
+                errors.append(f"Page {page}: {str(e)}")
+        
+        # Try to read the card label from page 4
+        card_label = "Unknown"
+        if 4 in card_data:
+            try:
+                page4_data = bytes(card_data[4]["data"])
+                card_label = page4_data.rstrip(b'\x00').decode('utf-8', errors='ignore')
+                if not card_label:
+                    card_label = "Empty"
+            except:
+                card_label = "Unreadable"
+        
+        return jsonify({
+            "uid": LAST_DETECTED_UID,
+            "card_label": card_label,
+            "mapped_label": UID_TO_LABEL.get(LAST_DETECTED_UID, "Not mapped"),
+            "pages": card_data,
+            "errors": errors,
+            "timestamp": time.time()
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to read card data: {str(e)}"}), 500
+
 @app.post("/api/map")
 def map_uid():
     body = request.get_json(force=True)

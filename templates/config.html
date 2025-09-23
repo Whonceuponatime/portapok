@@ -188,9 +188,42 @@ button:hover {
         <h3>🔧 PN532 Reader Status</h3>
         <div class="reader-status">
             <div class="status-indicator" id="pn532Status"></div>
-            <div>
+            <div style="flex: 1;">
                 <div style="font-weight: bold;">PN532 NFC Module</div>
                 <div style="color: #8892b0; font-size: 0.9em;" id="pn532Info">Checking connection...</div>
+            </div>
+        </div>
+        
+        <!-- Current Card Data Display -->
+        <div id="cardDataSection" style="display: none; margin-top: 20px; padding: 20px; background: rgba(20, 20, 35, 0.6); border-radius: 10px; border: 1px solid rgba(0, 212, 255, 0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 style="color: #00d4ff; margin: 0;">📋 Current Card Data</h4>
+                <button onclick="refreshCardData()" style="padding: 5px 10px; font-size: 0.8em; background: linear-gradient(45deg, #00d4ff, #0084ff);">
+                    🔄 Refresh
+                </button>
+            </div>
+            
+            <div class="card-info-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <strong style="color: #b8c5d1;">UID:</strong>
+                    <div id="currentUID" style="font-family: 'Courier New', monospace; color: #00d4ff; font-weight: bold;">-</div>
+                </div>
+                <div>
+                    <strong style="color: #b8c5d1;">Mapped Label:</strong>
+                    <div id="currentMappedLabel" style="color: #00ff88; font-weight: bold;">-</div>
+                </div>
+                <div>
+                    <strong style="color: #b8c5d1;">On-Card Label:</strong>
+                    <div id="currentCardLabel" style="color: #ff9800; font-weight: bold;">-</div>
+                </div>
+                <div>
+                    <strong style="color: #b8c5d1;">Last Updated:</strong>
+                    <div id="lastUpdated" style="color: #8892b0; font-size: 0.9em;">-</div>
+                </div>
+            </div>
+            
+            <div id="cardPagesData" style="background: rgba(0, 0, 0, 0.3); padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.85em; max-height: 300px; overflow-y: auto;">
+                <!-- Card pages data will be displayed here -->
             </div>
         </div>
     </div>
@@ -361,7 +394,7 @@ button:hover {
         });
     }
 
-    // Check PN532 status
+    // Check PN532 status and load card data
     async function checkPN532Status() {
         try {
             const response = await fetch('/api/state');
@@ -375,15 +408,91 @@ button:hover {
             if (hasActiveReader) {
                 statusIndicator.classList.add('online');
                 statusInfo.textContent = 'Connected and detecting cards';
+                // Try to load current card data
+                loadCurrentCardData();
             } else {
                 statusIndicator.classList.remove('online');
                 statusInfo.textContent = 'Connected but no cards detected';
+                // Hide card data section
+                document.getElementById('cardDataSection').style.display = 'none';
             }
         } catch (error) {
             const statusIndicator = document.getElementById('pn532Status');
             const statusInfo = document.getElementById('pn532Info');
             statusIndicator.classList.remove('online');
             statusInfo.textContent = 'Connection error';
+            document.getElementById('cardDataSection').style.display = 'none';
+        }
+    }
+
+    // Load current card data
+    async function loadCurrentCardData() {
+        try {
+            const response = await fetch('/api/current_card_data');
+            
+            if (response.ok) {
+                const cardData = await response.json();
+                displayCardData(cardData);
+                document.getElementById('cardDataSection').style.display = 'block';
+            } else {
+                // No card detected or error
+                document.getElementById('cardDataSection').style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Failed to load card data:', error);
+            document.getElementById('cardDataSection').style.display = 'none';
+        }
+    }
+
+    // Display card data in the UI
+    function displayCardData(cardData) {
+        document.getElementById('currentUID').textContent = cardData.uid || '-';
+        document.getElementById('currentMappedLabel').textContent = cardData.mapped_label || 'Not mapped';
+        document.getElementById('currentCardLabel').textContent = cardData.card_label || 'Empty';
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+        
+        // Display pages data
+        const pagesContainer = document.getElementById('cardPagesData');
+        if (cardData.pages && Object.keys(cardData.pages).length > 0) {
+            let pagesHtml = '<div style="color: #00d4ff; font-weight: bold; margin-bottom: 10px;">NTAG213 Memory Pages:</div>';
+            
+            Object.entries(cardData.pages).forEach(([page, info]) => {
+                pagesHtml += `
+                    <div style="margin-bottom: 8px;">
+                        <span style="color: #9c27b0;">Page ${page}</span> 
+                        <span style="color: #8892b0;">(${info.description}):</span><br>
+                        <span style="color: #00ff88;">HEX: ${info.hex}</span><br>
+                        <span style="color: #ff9800;">ASC: ${info.ascii}</span>
+                    </div>
+                `;
+            });
+            
+            if (cardData.errors && cardData.errors.length > 0) {
+                pagesHtml += '<div style="color: #ff4757; margin-top: 10px;">Errors:</div>';
+                cardData.errors.forEach(error => {
+                    pagesHtml += `<div style="color: #ff4757; font-size: 0.8em;">${error}</div>`;
+                });
+            }
+            
+            pagesContainer.innerHTML = pagesHtml;
+        } else {
+            pagesContainer.innerHTML = '<div style="color: #8892b0;">No card data available</div>';
+        }
+    }
+
+    // Manual refresh function
+    async function refreshCardData() {
+        const refreshBtn = event.target;
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = '⏳ Reading...';
+        
+        try {
+            await loadCurrentCardData();
+        } finally {
+            setTimeout(() => {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = '🔄 Refresh';
+            }, 1000);
         }
     }
 
@@ -579,6 +688,6 @@ button:hover {
     // Auto-capture and status updates
     setInterval(checkForNewUID, 1000); // Check for new UIDs every second
     setInterval(updateCardUsage, 3000); // Update card usage every 3 seconds
-    setInterval(checkPN532Status, 5000); // Check PN532 status every 5 seconds
+    setInterval(checkPN532Status, 3000); // Check PN532 status and card data every 3 seconds
 </script>
 {% endblock %}
