@@ -13,6 +13,41 @@
     z-index: 10;
 }
 
+.community-cards-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 5;
+}
+
+.community-label {
+    color: #ff9800;
+    font-size: 1em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 0 0 10px rgba(255, 152, 0, 0.5);
+}
+
+.community-cards {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.community-cards .playing-card {
+    width: 50px;
+    height: 70px;
+}
+
+.community-status {
+    color: #8892b0;
+    font-size: 0.8em;
+    font-style: italic;
+}
+
 .hand-label {
     color: #00d4ff;
     font-size: 1.2em;
@@ -196,9 +231,9 @@
     }
     
     .reader-position {
-        width: 50px;
-        height: 50px;
-        font-size: 0.8em;
+        width: 45px;
+        height: 45px;
+        font-size: 0.7em;
     }
     
     .reader-main {
@@ -207,6 +242,15 @@
     
     .player-hand-container {
         bottom: -60px;
+    }
+    
+    .community-cards-container {
+        transform: translate(-50%, -30%);
+    }
+    
+    .community-cards .playing-card {
+        width: 40px;
+        height: 56px;
     }
     
     .hand-label {
@@ -258,9 +302,9 @@
     }
     
     .reader-position {
-        width: 40px;
-        height: 40px;
-        font-size: 0.7em;
+        width: 35px;
+        height: 35px;
+        font-size: 0.6em;
     }
     
     .reader-main {
@@ -269,6 +313,19 @@
     
     .player-hand-container {
         bottom: -50px;
+    }
+    
+    .community-cards-container {
+        transform: translate(-50%, -25%);
+    }
+    
+    .community-cards .playing-card {
+        width: 35px;
+        height: 49px;
+    }
+    
+    .community-cards {
+        gap: 4px;
     }
     
     .hand-label {
@@ -354,14 +411,20 @@
     box-shadow: 0 6px 20px rgba(0, 255, 136, 0.6);
 }
 
-/* Reader positions around the table */
+/* Reader positions around the table - 12 readers (10 players + community cards) */
 .reader-main { bottom: -30px; left: 50%; transform: translateX(-50%); }
-.reader-p1 { top: 20px; left: -30px; }
-.reader-p2 { bottom: 20px; left: -30px; }
-.reader-p3 { bottom: -30px; left: 20%; }
-.reader-p4 { bottom: -30px; right: 20%; }
-.reader-p5 { bottom: 20px; right: -30px; }
-.reader-p6 { top: 20px; right: -30px; }
+.reader-p1 { top: 10px; left: 10%; }
+.reader-p2 { top: 10px; left: 30%; }
+.reader-p3 { top: 10px; left: 50%; }
+.reader-p4 { top: 10px; left: 70%; }
+.reader-p5 { top: 10px; left: 90%; }
+.reader-p6 { top: 50%; right: -30px; }
+.reader-p7 { bottom: 10px; right: 10%; }
+.reader-p8 { bottom: 10px; right: 30%; }
+.reader-p9 { bottom: 10px; right: 50%; }
+.reader-p10 { bottom: 10px; right: 70%; }
+.reader-p11 { bottom: 10px; right: 90%; }
+.reader-p12 { top: 50%; left: -30px; }
 
 .stats-grid {
     display: grid;
@@ -440,6 +503,39 @@
                 <div style="font-size: 0.9em; opacity: 0.8;">PN532 RFID System</div>
             </div>
             
+            <!-- Community Cards Display -->
+            <div class="community-cards-container">
+                <div class="community-label">Community Cards</div>
+                <div class="community-cards" id="communityCards">
+                    <div class="playing-card card-back" id="commCard1">
+                        <div class="card-inner">
+                            <div class="card-back-pattern"></div>
+                        </div>
+                    </div>
+                    <div class="playing-card card-back" id="commCard2">
+                        <div class="card-inner">
+                            <div class="card-back-pattern"></div>
+                        </div>
+                    </div>
+                    <div class="playing-card card-back" id="commCard3">
+                        <div class="card-inner">
+                            <div class="card-back-pattern"></div>
+                        </div>
+                    </div>
+                    <div class="playing-card card-back" id="commCard4">
+                        <div class="card-inner">
+                            <div class="card-back-pattern"></div>
+                        </div>
+                    </div>
+                    <div class="playing-card card-back" id="commCard5">
+                        <div class="card-inner">
+                            <div class="card-back-pattern"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="community-status" id="communityStatus">Waiting for community cards...</div>
+            </div>
+            
             <!-- Player Hand Display -->
             <div class="player-hand-container">
                 <div class="hand-label">Player Hand</div>
@@ -458,7 +554,7 @@
                 <div class="hand-status" id="handStatus">Waiting for cards...</div>
             </div>
             
-            <!-- Reader positions -->
+            <!-- Reader positions for 12 readers (10 players + community cards) -->
             <div class="reader-position reader-main" title="Main Reader - Player Hand" onclick="configureReader('main')">
                 RFID
             </div>
@@ -468,6 +564,12 @@
             <div class="reader-position reader-p4" title="Player 4 Position" onclick="configureReader('p4')">P4</div>
             <div class="reader-position reader-p5" title="Player 5 Position" onclick="configureReader('p5')">P5</div>
             <div class="reader-position reader-p6" title="Player 6 Position" onclick="configureReader('p6')">P6</div>
+            <div class="reader-position reader-p7" title="Player 7 Position" onclick="configureReader('p7')">P7</div>
+            <div class="reader-position reader-p8" title="Player 8 Position" onclick="configureReader('p8')">P8</div>
+            <div class="reader-position reader-p9" title="Player 9 Position" onclick="configureReader('p9')">P9</div>
+            <div class="reader-position reader-p10" title="Player 10 Position" onclick="configureReader('p10')">P10</div>
+            <div class="reader-position reader-p11" title="Community Cards Position" onclick="configureReader('p11')">COMM</div>
+            <div class="reader-position reader-p12" title="Dealer Position" onclick="configureReader('p12')">DEAL</div>
         </div>
     </div>
     
@@ -550,21 +652,39 @@
     
     // Update reader positions and card display
     function updateReaderPositions(state, hand) {
-        const mainReader = document.querySelector('.reader-main');
+        // Update all reader positions
+        Object.entries(state).forEach(([readerName, readerState]) => {
+            const readerElement = document.querySelector(`.reader-${readerName}`);
+            if (readerElement) {
+                if (readerState.hand_size > 0) {
+                    readerElement.classList.add('active');
+                    if (readerName === 'p11') {
+                        readerElement.textContent = 'COMM';
+                    } else if (readerName === 'p12') {
+                        readerElement.textContent = 'DEAL';
+                    } else {
+                        readerElement.textContent = readerState.hand_size === 2 ? 'HAND' : 'CARD';
+                    }
+                    readerElement.style.background = 'linear-gradient(45deg, #00ff88, #00cc6a)';
+                } else {
+                    readerElement.classList.remove('active');
+                    if (readerName === 'p11') {
+                        readerElement.textContent = 'COMM';
+                    } else if (readerName === 'p12') {
+                        readerElement.textContent = 'DEAL';
+                    } else {
+                        readerElement.textContent = readerName.toUpperCase();
+                    }
+                    readerElement.style.background = 'linear-gradient(45deg, #00d4ff, #0084ff)';
+                }
+            }
+        });
         
-        // Update RFID reader status
-        if (hand.is_stable && hand.hand_cards.length > 0) {
-            mainReader.classList.add('active');
-            mainReader.textContent = 'ACTIVE';
-            mainReader.style.background = 'linear-gradient(45deg, #00ff88, #00cc6a)';
-        } else {
-            mainReader.classList.remove('active');
-            mainReader.textContent = 'RFID';
-            mainReader.style.background = 'linear-gradient(45deg, #00d4ff, #0084ff)';
-        }
-        
-        // Update card display
+        // Update main player hand display
         updateCardDisplay(hand);
+        
+        // Update community cards display
+        updateCommunityCards(state);
     }
     
     // Update the visual card display
@@ -674,6 +794,38 @@
                 <div class="card-bottom-suit">${cardData.suit}</div>
             </div>
         `;
+    }
+    
+    // Update community cards display
+    function updateCommunityCards(state) {
+        const communityReader = state.p11; // Community cards reader
+        const communityStatus = document.getElementById('communityStatus');
+        
+        // Reset all community cards to face-down
+        for (let i = 1; i <= 5; i++) {
+            const card = document.getElementById(`commCard${i}`);
+            card.className = 'playing-card card-back';
+            card.innerHTML = '<div class="card-inner"><div class="card-back-pattern"></div></div>';
+        }
+        
+        if (communityReader && communityReader.hand_cards && communityReader.hand_cards.length > 0) {
+            // Show community cards
+            communityReader.hand_cards.forEach((card, index) => {
+                if (index < 5) { // Max 5 community cards
+                    const cardElement = document.getElementById(`commCard${index + 1}`);
+                    const cardData = parseCardLabel(card.label || 'Unknown');
+                    cardElement.className = `playing-card card-front ${cardData.color}`;
+                    cardElement.innerHTML = createCardHTML(cardData);
+                }
+            });
+            
+            const cardCount = communityReader.hand_cards.length;
+            communityStatus.textContent = `${cardCount} community cards dealt`;
+            communityStatus.style.color = '#00ff88';
+        } else {
+            communityStatus.textContent = 'Waiting for community cards...';
+            communityStatus.style.color = '#8892b0';
+        }
     }
     
     // Quick actions

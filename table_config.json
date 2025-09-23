@@ -1,11 +1,71 @@
 {
-  "table_name": "PN532 Poker Table Alpha",
-  "max_players": 8,
+  "table_name": "PN532 Poker Table Alpha - 12 Readers",
+  "max_players": 10,
   "readers": {
     "main": {
       "type": "pn532",
+      "position": "Main Player Hand",
+      "spi_cs": 8
+    },
+    "p1": {
+      "type": "pn532",
+      "position": "Player 1",
+      "spi_cs": 7
+    },
+    "p2": {
+      "type": "pn532",
+      "position": "Player 2",
+      "spi_cs": 5
+    },
+    "p3": {
+      "type": "pn532",
+      "position": "Player 3",
+      "spi_cs": 6
+    },
+    "p4": {
+      "type": "pn532",
+      "position": "Player 4",
+      "spi_cs": 12
+    },
+    "p5": {
+      "type": "pn532",
+      "position": "Player 5",
+      "spi_cs": 13
+    },
+    "p6": {
+      "type": "pn532",
+      "position": "Player 6",
+      "spi_cs": 16
+    },
+    "p7": {
+      "type": "pn532",
+      "position": "Player 7",
+      "spi_cs": 20
+    },
+    "p8": {
+      "type": "pn532",
+      "position": "Player 8",
+      "spi_cs": 21
+    },
+    "p9": {
+      "type": "pn532",
+      "position": "Player 9",
+      "spi_cs": 24
+    },
+    "p10": {
+      "type": "pn532",
+      "position": "Player 10",
+      "spi_cs": 25
+    },
+    "p11": {
+      "type": "pn532",
       "position": "Community Cards",
-      "i2c_addr": 36
+      "spi_cs": 26
+    },
+    "p12": {
+      "type": "pn532",
+      "position": "Dealer Position",
+      "spi_cs": 19
     }
   }
 }
