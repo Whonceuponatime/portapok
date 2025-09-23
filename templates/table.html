@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}{{ table_name }} - Poker Table{% endblock %}
+
+{% block extra_styles %}
+.poker-table-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    margin: 40px 0;
+}
+.poker-table {
+    width: 800px;
+    height: 400px;
+    background: linear-gradient(135deg, #0d4f3c 0%, #1a6b4d 100%);
+    border-radius: 200px;
+    position: relative;
+    border: 8px solid #2d5a47;
+    box-shadow: 
+        0 0 30px rgba(0, 0, 0, 0.5),
+        inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+.table-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #ffffff;
+}
+.table-logo {
+    font-size: 3em;
+    margin-bottom: 10px;
+}
+.table-name {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.reader-position {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(45deg, #00d4ff, #0084ff);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+}
+.reader-position:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 212, 255, 0.6);
+}
+.reader-position.active {
+    background: linear-gradient(45deg, #00ff88, #00cc6a);
+    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
+}
+.reader-position.active:hover {
+    box-shadow: 0 6px 20px rgba(0, 255, 136, 0.6);
+}
+
+/* Reader positions around the table */
+.reader-main { top: -30px; left: 50%; transform: translateX(-50%); }
+.reader-p1 { top: 20px; left: -30px; }
+.reader-p2 { bottom: 20px; left: -30px; }
+.reader-p3 { bottom: -30px; left: 20%; }
+.reader-p4 { bottom: -30px; right: 20%; }
+.reader-p5 { bottom: 20px; right: -30px; }
+.reader-p6 { top: 20px; right: -30px; }
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 40px 0;
+}
+.stat-card {
+    background: rgba(30, 30, 50, 0.8);
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.stat-card:hover {
+    border-color: rgba(0, 212, 255, 0.4);
+    transform: translateY(-5px);
+}
+.stat-number {
+    font-size: 2.5em;
+    font-weight: bold;
+    background: linear-gradient(45deg, #00d4ff, #9c27b0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+}
+.stat-label {
+    color: #b8c5d1;
+    font-size: 1.1em;
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 30px 0;
+}
+.action-btn {
+    background: linear-gradient(45deg, #9c27b0, #7b1fa2);
+    color: white;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.action-btn:hover {
+    background: linear-gradient(45deg, #7b1fa2, #6a1b9a);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4);
+}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">Poker Table Overview</h1>
+        <p class="page-subtitle">Professional RFID Card Management System</p>
+    </div>
+    
+    <div class="poker-table-container">
+        <div class="poker-table">
+            <div class="table-center">
+                <div class="table-logo">🎰</div>
+                <div class="table-name">{{ table_name }}</div>
+                <div style="font-size: 0.9em; opacity: 0.8;">PN532 RFID System</div>
+            </div>
+            
+            <!-- Reader positions -->
+            <div class="reader-position reader-main active" title="Main Reader - Community Cards" onclick="configureReader('main')">
+                MAIN
+            </div>
+            <div class="reader-position reader-p1" title="Player 1 Position" onclick="configureReader('p1')">P1</div>
+            <div class="reader-position reader-p2" title="Player 2 Position" onclick="configureReader('p2')">P2</div>
+            <div class="reader-position reader-p3" title="Player 3 Position" onclick="configureReader('p3')">P3</div>
+            <div class="reader-position reader-p4" title="Player 4 Position" onclick="configureReader('p4')">P4</div>
+            <div class="reader-position reader-p5" title="Player 5 Position" onclick="configureReader('p5')">P5</div>
+            <div class="reader-position reader-p6" title="Player 6 Position" onclick="configureReader('p6')">P6</div>
+        </div>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number" id="activeCards">0</div>
+            <div class="stat-label">Active Cards</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalMapped">0</div>
+            <div class="stat-label">Cards Mapped</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalReaders">{{ readers|length }}</div>
+            <div class="stat-label">Active Readers</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="uptime">00:00:00</div>
+            <div class="stat-label">System Uptime</div>
+        </div>
+    </div>
+    
+    <div class="quick-actions">
+        <a href="/config" class="action-btn">
+            <span>⚙️</span>Configure System
+        </a>
+        <a href="/cards" class="action-btn">
+            <span>🃏</span>Manage Cards
+        </a>
+        <button class="action-btn" onclick="startGame()">
+            <span>🎮</span>Start Game
+        </button>
+        <button class="action-btn" onclick="resetTable()">
+            <span>🔄</span>Reset Table
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let startTime = Date.now();
+    
+    // Update uptime counter
+    function updateUptime() {
+        const elapsed = Date.now() - startTime;
+        const hours = Math.floor(elapsed / 3600000);
+        const minutes = Math.floor((elapsed % 3600000) / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        document.getElementById('uptime').textContent = 
+            `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+    }
+    setInterval(updateUptime, 1000);
+    
+    // Update stats
+    async function updateStats() {
+        try {
+            const [stateRes, cardsRes] = await Promise.all([
+                fetch('/api/state'),
+                fetch('/api/cards')
+            ]);
+            
+            const state = await stateRes.json();
+            const cards = await cardsRes.json();
+            
+            let activeCount = 0;
+            Object.values(state).forEach(reader => {
+                if (reader.uid && reader.label) activeCount++;
+            });
+            
+            document.getElementById('activeCards').textContent = activeCount;
+            document.getElementById('totalMapped').textContent = Object.keys(cards).length;
+            
+        } catch (error) {
+            console.error('Failed to update stats:', error);
+        }
+    }
+    
+    // Quick actions
+    function startGame() {
+        alert('Game functionality coming soon! 🎮');
+    }
+    
+    function resetTable() {
+        if (confirm('Reset all card mappings? This cannot be undone.')) {
+            // Implementation for resetting table
+            alert('Reset functionality coming soon! 🔄');
+        }
+    }
+    
+    function configureReader(position) {
+        alert(`Configure ${position.toUpperCase()} reader position - Coming soon!`);
+    }
+    
+    updateStats();
+    setInterval(updateStats, 3000);
+</script>
+{% endblock %}
