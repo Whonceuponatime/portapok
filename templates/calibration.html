@@ -1,0 +1,645 @@
+{% extends "base.html" %}
+
+{% block title %}Reader Calibration - PN532 Poker Table{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <h1>🎯 Reader Calibration</h1>
+        <p>Step-by-step guide to test and calibrate all 12 PN532 readers</p>
+    </div>
+
+    <!-- Calibration Progress -->
+    <div class="calibration-progress">
+        <div class="progress-header">
+            <h3>📊 Calibration Progress</h3>
+            <div class="progress-stats">
+                <span id="completed-count">0</span> / <span id="total-count">12</span> readers tested
+            </div>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+    </div>
+
+    <!-- Current Step -->
+    <div class="current-step" id="current-step">
+        <div class="step-header">
+            <h3>🎯 Current Step</h3>
+            <div class="step-number" id="step-number">1</div>
+        </div>
+        <div class="step-content">
+            <h4 id="step-title">Testing Main Player Hand Reader</h4>
+            <p id="step-description">Place a test card on the main player hand reader to verify it's working correctly.</p>
+            <div class="step-instructions">
+                <div class="instruction-item">
+                    <span class="instruction-icon">📍</span>
+                    <span>Reader Position: <strong id="reader-position">Main Player Hand</strong></span>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-icon">🔌</span>
+                    <span>SPI CS Pin: <strong id="spi-cs">GPIO8</strong></span>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-icon">🃏</span>
+                    <span>Action: <strong id="action-text">Place any NTAG213 card on the reader</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Results -->
+    <div class="test-results" id="test-results">
+        <h3>📋 Test Results</h3>
+        <div class="result-status" id="result-status">
+            <div class="status-indicator" id="status-indicator">⏳</div>
+            <span id="status-text">Waiting for card detection...</span>
+        </div>
+        <div class="detected-card" id="detected-card" style="display: none;">
+            <h4>Detected Card:</h4>
+            <div class="card-info">
+                <div class="card-uid">UID: <span id="card-uid">-</span></div>
+                <div class="card-label">Label: <span id="card-label">-</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="calibration-actions">
+        <button class="btn btn-primary" id="test-reader-btn" onclick="testCurrentReader()">
+            🧪 Test Current Reader
+        </button>
+        <button class="btn btn-success" id="pass-reader-btn" onclick="passCurrentReader()" style="display: none;">
+            ✅ Pass - Reader Working
+        </button>
+        <button class="btn btn-warning" id="fail-reader-btn" onclick="failCurrentReader()" style="display: none;">
+            ❌ Fail - Reader Not Working
+        </button>
+        <button class="btn btn-secondary" id="skip-reader-btn" onclick="skipCurrentReader()">
+            ⏭️ Skip This Reader
+        </button>
+    </div>
+
+    <!-- Calibration Summary -->
+    <div class="calibration-summary" id="calibration-summary" style="display: none;">
+        <h3>🎉 Calibration Complete!</h3>
+        <div class="summary-stats">
+            <div class="stat-item">
+                <span class="stat-number" id="passed-count">0</span>
+                <span class="stat-label">Readers Passed</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="failed-count">0</span>
+                <span class="stat-label">Readers Failed</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="skipped-count">0</span>
+                <span class="stat-label">Readers Skipped</span>
+            </div>
+        </div>
+        <div class="summary-actions">
+            <button class="btn btn-primary" onclick="restartCalibration()">
+                🔄 Restart Calibration
+            </button>
+            <button class="btn btn-success" onclick="goToTable()">
+                🎰 Go to Poker Table
+            </button>
+        </div>
+    </div>
+
+    <!-- Reader Status Grid -->
+    <div class="reader-status-grid">
+        <h3>📡 Reader Status Overview</h3>
+        <div class="grid-container" id="reader-grid">
+            <!-- Reader status items will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<style>
+.calibration-progress {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.progress-stats {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.current-step {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    position: relative;
+}
+
+.step-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.step-number {
+    background: var(--accent-color);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.step-instructions {
+    margin-top: 20px;
+}
+
+.instruction-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+
+.instruction-icon {
+    font-size: 1.2em;
+    margin-right: 12px;
+    width: 24px;
+    text-align: center;
+}
+
+.test-results {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.result-status {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.status-indicator {
+    font-size: 1.5em;
+    margin-right: 12px;
+}
+
+.detected-card {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.card-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.card-uid, .card-label {
+    font-family: 'Courier New', monospace;
+    background: var(--card-bg);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.calibration-actions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.calibration-summary {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 2em;
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.summary-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.reader-status-grid {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.reader-status-item {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.reader-status-item.pending {
+    border-color: var(--warning-color);
+    background: rgba(255, 193, 7, 0.1);
+}
+
+.reader-status-item.testing {
+    border-color: var(--accent-color);
+    background: rgba(0, 123, 255, 0.1);
+    animation: pulse 2s infinite;
+}
+
+.reader-status-item.passed {
+    border-color: var(--success-color);
+    background: rgba(40, 167, 69, 0.1);
+}
+
+.reader-status-item.failed {
+    border-color: var(--danger-color);
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.reader-status-item.skipped {
+    border-color: var(--text-secondary);
+    background: rgba(108, 117, 125, 0.1);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.reader-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.reader-position {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+
+.reader-status {
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.reader-status.pending { color: var(--warning-color); }
+.reader-status.testing { color: var(--accent-color); }
+.reader-status.passed { color: var(--success-color); }
+.reader-status.failed { color: var(--danger-color); }
+.reader-status.skipped { color: var(--text-secondary); }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .calibration-actions {
+        flex-direction: column;
+    }
+    
+    .summary-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .grid-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .step-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+</style>
+
+<script>
+// Calibration state
+let calibrationState = {
+    currentStep: 0,
+    readers: [],
+    results: {},
+    isTesting: false
+};
+
+// Initialize calibration
+function initCalibration() {
+    // Load reader configuration
+    fetch('/api/readers')
+        .then(response => response.json())
+        .then(data => {
+            calibrationState.readers = Object.entries(data.readers).map(([name, config]) => ({
+                name,
+                position: config.position,
+                spi_cs: config.spi_cs,
+                status: 'pending'
+            }));
+            
+            updateReaderGrid();
+            updateCurrentStep();
+        })
+        .catch(error => {
+            console.error('Error loading readers:', error);
+            showError('Failed to load reader configuration');
+        });
+}
+
+// Update reader status grid
+function updateReaderGrid() {
+    const grid = document.getElementById('reader-grid');
+    grid.innerHTML = '';
+    
+    calibrationState.readers.forEach((reader, index) => {
+        const item = document.createElement('div');
+        item.className = `reader-status-item ${reader.status}`;
+        item.innerHTML = `
+            <div class="reader-name">${reader.name.toUpperCase()}</div>
+            <div class="reader-position">${reader.position}</div>
+            <div class="reader-status ${reader.status}">${reader.status}</div>
+        `;
+        grid.appendChild(item);
+    });
+}
+
+// Update current step display
+function updateCurrentStep() {
+    const currentReader = calibrationState.readers[calibrationState.currentStep];
+    if (!currentReader) {
+        showCalibrationComplete();
+        return;
+    }
+    
+    document.getElementById('step-number').textContent = calibrationState.currentStep + 1;
+    document.getElementById('step-title').textContent = `Testing ${currentReader.position}`;
+    document.getElementById('step-description').textContent = getStepDescription(currentReader);
+    document.getElementById('reader-position').textContent = currentReader.position;
+    document.getElementById('spi-cs').textContent = `GPIO${currentReader.spi_cs}`;
+    document.getElementById('action-text').textContent = getActionText(currentReader);
+    
+    // Update progress
+    const completed = calibrationState.readers.filter(r => r.status !== 'pending').length;
+    const total = calibrationState.readers.length;
+    document.getElementById('completed-count').textContent = completed;
+    document.getElementById('total-count').textContent = total;
+    document.getElementById('progress-fill').style.width = `${(completed / total) * 100}%`;
+    
+    // Update current reader status
+    currentReader.status = 'testing';
+    updateReaderGrid();
+}
+
+// Get step description based on reader type
+function getStepDescription(reader) {
+    if (reader.name === 'main') {
+        return 'Test the main player hand reader. This is where the primary player will place their cards.';
+    } else if (reader.name.startsWith('p') && reader.name !== 'p11' && reader.name !== 'p12') {
+        const playerNum = reader.name.substring(1);
+        return `Test player ${playerNum} position reader. This reader will detect cards for player ${playerNum}.`;
+    } else if (reader.name === 'p11') {
+        return 'Test the community cards reader. This reader will detect the 5 community cards (flop, turn, river).';
+    } else if (reader.name === 'p12') {
+        return 'Test the dealer position reader. This reader can be used for dealer controls or additional functionality.';
+    }
+    return 'Test this reader to ensure it can detect NTAG213 cards properly.';
+}
+
+// Get action text based on reader type
+function getActionText(reader) {
+    if (reader.name === 'p11') {
+        return 'Place 1-5 community cards on the reader';
+    } else if (reader.name === 'main') {
+        return 'Place 1-2 player cards on the reader';
+    } else {
+        return 'Place any NTAG213 card on the reader';
+    }
+}
+
+// Test current reader
+function testCurrentReader() {
+    if (calibrationState.isTesting) return;
+    
+    calibrationState.isTesting = true;
+    const currentReader = calibrationState.readers[calibrationState.currentStep];
+    
+    // Update UI
+    document.getElementById('test-reader-btn').style.display = 'none';
+    document.getElementById('status-indicator').textContent = '🔍';
+    document.getElementById('status-text').textContent = 'Testing reader... Please place a card.';
+    
+    // Start monitoring for cards
+    const testInterval = setInterval(() => {
+        fetch(`/api/reader/${currentReader.name}/status`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.uid) {
+                    clearInterval(testInterval);
+                    showTestResult(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error testing reader:', error);
+            });
+    }, 500);
+    
+    // Timeout after 30 seconds
+    setTimeout(() => {
+        if (calibrationState.isTesting) {
+            clearInterval(testInterval);
+            showTestTimeout();
+        }
+    }, 30000);
+}
+
+// Show test result
+function showTestResult(data) {
+    calibrationState.isTesting = false;
+    
+    document.getElementById('status-indicator').textContent = '✅';
+    document.getElementById('status-text').textContent = 'Card detected successfully!';
+    document.getElementById('detected-card').style.display = 'block';
+    document.getElementById('card-uid').textContent = data.uid;
+    document.getElementById('card-label').textContent = data.label || 'Unmapped';
+    
+    document.getElementById('pass-reader-btn').style.display = 'inline-block';
+    document.getElementById('fail-reader-btn').style.display = 'inline-block';
+}
+
+// Show test timeout
+function showTestTimeout() {
+    calibrationState.isTesting = false;
+    
+    document.getElementById('status-indicator').textContent = '⏰';
+    document.getElementById('status-text').textContent = 'No card detected within 30 seconds.';
+    document.getElementById('detected-card').style.display = 'none';
+    
+    document.getElementById('pass-reader-btn').style.display = 'inline-block';
+    document.getElementById('fail-reader-btn').style.display = 'inline-block';
+}
+
+// Pass current reader
+function passCurrentReader() {
+    const currentReader = calibrationState.readers[calibrationState.currentStep];
+    currentReader.status = 'passed';
+    calibrationState.results[currentReader.name] = 'passed';
+    
+    nextStep();
+}
+
+// Fail current reader
+function failCurrentReader() {
+    const currentReader = calibrationState.readers[calibrationState.currentStep];
+    currentReader.status = 'failed';
+    calibrationState.results[currentReader.name] = 'failed';
+    
+    nextStep();
+}
+
+// Skip current reader
+function skipCurrentReader() {
+    const currentReader = calibrationState.readers[calibrationState.currentStep];
+    currentReader.status = 'skipped';
+    calibrationState.results[currentReader.name] = 'skipped';
+    
+    nextStep();
+}
+
+// Move to next step
+function nextStep() {
+    // Reset UI
+    document.getElementById('test-reader-btn').style.display = 'inline-block';
+    document.getElementById('pass-reader-btn').style.display = 'none';
+    document.getElementById('fail-reader-btn').style.display = 'none';
+    document.getElementById('detected-card').style.display = 'none';
+    document.getElementById('status-indicator').textContent = '⏳';
+    document.getElementById('status-text').textContent = 'Waiting for card detection...';
+    
+    calibrationState.currentStep++;
+    updateCurrentStep();
+}
+
+// Show calibration complete
+function showCalibrationComplete() {
+    document.getElementById('current-step').style.display = 'none';
+    document.getElementById('test-results').style.display = 'none';
+    document.getElementById('calibration-actions').style.display = 'none';
+    document.getElementById('calibration-summary').style.display = 'block';
+    
+    const passed = calibrationState.readers.filter(r => r.status === 'passed').length;
+    const failed = calibrationState.readers.filter(r => r.status === 'failed').length;
+    const skipped = calibrationState.readers.filter(r => r.status === 'skipped').length;
+    
+    document.getElementById('passed-count').textContent = passed;
+    document.getElementById('failed-count').textContent = failed;
+    document.getElementById('skipped-count').textContent = skipped;
+    
+    updateReaderGrid();
+}
+
+// Restart calibration
+function restartCalibration() {
+    calibrationState.currentStep = 0;
+    calibrationState.results = {};
+    calibrationState.readers.forEach(reader => {
+        reader.status = 'pending';
+    });
+    
+    document.getElementById('current-step').style.display = 'block';
+    document.getElementById('test-results').style.display = 'block';
+    document.getElementById('calibration-actions').style.display = 'flex';
+    document.getElementById('calibration-summary').style.display = 'none';
+    
+    updateCurrentStep();
+}
+
+// Go to table
+function goToTable() {
+    window.location.href = '/';
+}
+
+// Show error
+function showError(message) {
+    alert('Error: ' + message);
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', initCalibration);
+</script>
+{% endblock %}

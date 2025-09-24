@@ -262,6 +262,12 @@ def cards_page():
                          table_name=config.get("table_name", "PN532 Poker Table"),
                          readers=READERS)
 
+@app.route("/calibration")
+def calibration_page():
+    return render_template("calibration.html", 
+                         table_name=config.get("table_name", "PN532 Poker Table"),
+                         readers=READERS)
+
 # API endpoints
 @app.get("/api/state")
 def get_state():
@@ -333,6 +339,96 @@ def get_reader_hands():
             "is_stable": len(hand["cards"]) > 0
         }
     return jsonify(hands)
+
+# Calibration API endpoints
+@app.get("/api/readers")
+def get_readers():
+    """Get all reader configurations"""
+    return jsonify({
+        "readers": READERS,
+        "table_name": config.get("table_name", "PN532 Poker Table"),
+        "max_players": config.get("max_players", 10)
+    })
+
+@app.get("/api/reader/<reader_name>/status")
+def get_reader_status(reader_name):
+    """Get status of a specific reader"""
+    if reader_name not in STATE:
+        return jsonify({"error": "Reader not found"}), 404
+    
+    reader_state = STATE[reader_name]
+    return jsonify({
+        "reader": reader_name,
+        "uid": reader_state.get("uid"),
+        "label": reader_state.get("label"),
+        "hand_size": reader_state.get("hand_size", 0),
+        "hand_cards": reader_state.get("hand_cards", []),
+        "last_seen": reader_state.get("last_seen"),
+        "is_active": reader_state.get("uid") is not None
+    })
+
+@app.get("/api/reader/<reader_name>/test")
+def test_reader(reader_name):
+    """Test a specific reader for card detection"""
+    if reader_name not in pn532_objects:
+        return jsonify({"error": "Reader not found"}), 404
+    
+    try:
+        pn532_obj = pn532_objects[reader_name]
+        if hasattr(pn532_obj, 'read_passive_target'):
+            # Real PN532 reader
+            uid = pn532_obj.read_passive_target(timeout=0.5)
+            if uid:
+                uhex = "".join(f"{x:02X}" for x in uid)
+                label = UID_TO_LABEL.get(uhex)
+                return jsonify({
+                    "success": True,
+                    "uid": uhex,
+                    "label": label,
+                    "message": "Card detected successfully"
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "uid": None,
+                    "label": None,
+                    "message": "No card detected"
+                })
+        else:
+            # Dummy reader
+            return jsonify({
+                "success": False,
+                "uid": None,
+                "label": None,
+                "message": "Dummy reader - no hardware connected"
+            })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Reader test failed"
+        }), 500
+
+@app.post("/api/calibration/result")
+def save_calibration_result():
+    """Save calibration result for a reader"""
+    data = request.get_json()
+    reader_name = data.get("reader")
+    result = data.get("result")  # "passed", "failed", "skipped"
+    notes = data.get("notes", "")
+    
+    if not reader_name or not result:
+        return jsonify({"error": "Reader name and result required"}), 400
+    
+    # Store calibration result (you could save this to a file)
+    # For now, we'll just return success
+    return jsonify({
+        "success": True,
+        "reader": reader_name,
+        "result": result,
+        "notes": notes,
+        "timestamp": time.time()
+    })
 
 if __name__ == "__main__":
     try:
