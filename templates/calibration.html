@@ -30,7 +30,7 @@
         </div>
         <div class="step-content">
             <h4 id="step-title">Testing Main Player Hand Reader</h4>
-            <p id="step-description">Connect your PN532 reader to the specified pins and place a test card to verify it's working correctly. <strong>Note:</strong> Your PN532 board uses 5V power, not 3.3V.</p>
+            <p id="step-description">Connect your PN532 reader to the specified SPI pins and place a test card to verify it's working correctly. <strong>Note:</strong> Your PN532 board uses 5V power and SPI communication (not I2C).</p>
             
             <!-- Pin Connection Guide -->
             <div class="pin-connection-guide">
@@ -54,7 +54,7 @@
                     </div>
                     <div class="pin-item">
                         <span class="pin-label">NSS (Chip Select)</span>
-                        <span class="pin-value" id="pin-cs">GPIO8 (Pin 24)</span>
+                        <span class="pin-value" id="pin-cs">GPIO8 (Pin 24) - CE0</span>
                     </div>
                     <div class="pin-item">
                         <span class="pin-label">MO (MOSI)</span>

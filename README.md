@@ -25,33 +25,36 @@ A professional proof-of-concept poker table with PN532 NFC reader and NTAG213 st
 
 ## Wiring
 
-### PN532 I2C Setup (Recommended)
+### PN532 SPI Setup (Current Configuration)
 
-1. **Set PN532 jumpers for I2C mode:**
-   - **SET0** = High (H)
+1. **Set PN532 jumpers for SPI mode:**
+   - **SET0** = Low (L)
    - **SET1** = Low (L)
 
-2. **Enable I2C on Raspberry Pi:**
+2. **Enable SPI on Raspberry Pi:**
 ```bash
 sudo raspi-config
-# Interface Options → I2C → Enable → Reboot
+# Interface Options → SPI → Enable → Reboot
 ```
 
 3. **Wire PN532 to Raspberry Pi:**
 
 | PN532 Pin | Pi Pin | GPIO | Description |
 |-----------|--------|------|-------------|
-| **VDD/5V** | Pin 2 | 5V | Power (5V required for this PN532 board) |
+| **5V** | Pin 2 | 5V | Power (5V required for this PN532 board) |
 | **GND** | Pin 6 | GND | Ground |
-| **SDA** | Pin 3 | GPIO2 | I2C Data |
-| **SCL** | Pin 5 | GPIO3 | I2C Clock |
+| **RST#** | Pin 12 | GPIO18 | Reset (Optional) |
+| **IRQ** | Pin 11 | GPIO17 | Interrupt (Optional) |
+| **NSS** | Pin 24 | GPIO8 | Chip Select (CE0) |
+| **MO** | Pin 19 | GPIO10 | MOSI (Master Out) |
+| **MI** | Pin 21 | GPIO9 | MISO (Master In) |
+| **SCK** | Pin 23 | GPIO11 | Clock |
 
-4. **Verify PN532 detection:**
+4. **Verify SPI is enabled:**
 ```bash
-sudo apt install -y i2c-tools
-sudo i2cdetect -y 1
+lsmod | grep spi
 ```
-Look for address `24` or `48`. If not found, check jumpers and wiring.
+Should show `spi_bcm2835` module loaded.
 
 ## Installation
 
@@ -70,7 +73,14 @@ pip3 install -r requirements.txt
 
 1. **Start the server:**
 ```bash
+# For single reader SPI setup (current configuration):
+python3 pn532_spi_single_server.py
+
+# For I2C setup (if you switch to I2C):
 python3 pn532_poker_server.py
+
+# For 12-reader SPI setup (advanced):
+python3 pn532_12_reader_server.py
 ```
 
 2. **Access the Professional Web Interface:**
