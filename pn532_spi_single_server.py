@@ -312,6 +312,14 @@ def heads_up():
                          readers=READERS,
                          state=STATE)
 
+@app.route("/calibration")
+def calibration():
+    return render_template("calibration.html", 
+                         table_config=TABLE_CONFIG,
+                         readers=READERS,
+                         state=STATE,
+                         debug_info=debug_info)
+
 # API Routes
 @app.route("/api/state")
 def api_state():
