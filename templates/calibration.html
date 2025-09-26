@@ -30,36 +30,60 @@
         </div>
         <div class="step-content">
             <h4 id="step-title">Testing Main Player Hand Reader</h4>
-            <p id="step-description">Connect your PN532 reader to the specified pins and place a test card to verify it's working correctly.</p>
+            <p id="step-description">Connect your PN532 reader to the specified pins and place a test card to verify it's working correctly. <strong>Note:</strong> Your PN532 board uses 5V power, not 3.3V.</p>
             
             <!-- Pin Connection Guide -->
             <div class="pin-connection-guide">
                 <h5>🔌 Pin Connection Guide</h5>
                 <div class="pin-grid">
                     <div class="pin-item">
-                        <span class="pin-label">VCC (Power)</span>
-                        <span class="pin-value" id="pin-vcc">3.3V (Pin 1)</span>
+                        <span class="pin-label">5V (Power)</span>
+                        <span class="pin-value">5V (Pin 2 or 4)</span>
                     </div>
                     <div class="pin-item">
                         <span class="pin-label">GND (Ground)</span>
                         <span class="pin-value">GND (Pin 6)</span>
                     </div>
                     <div class="pin-item">
-                        <span class="pin-label">SCK (Clock)</span>
-                        <span class="pin-value">GPIO11 (Pin 23)</span>
+                        <span class="pin-label">RST# (Reset)</span>
+                        <span class="pin-value">GPIO18 (Pin 12) - Optional</span>
                     </div>
                     <div class="pin-item">
-                        <span class="pin-label">MOSI (Data Out)</span>
+                        <span class="pin-label">IRQ (Interrupt)</span>
+                        <span class="pin-value">GPIO17 (Pin 11) - Optional</span>
+                    </div>
+                    <div class="pin-item">
+                        <span class="pin-label">NSS (Chip Select)</span>
+                        <span class="pin-value" id="pin-cs">GPIO8 (Pin 24)</span>
+                    </div>
+                    <div class="pin-item">
+                        <span class="pin-label">MO (MOSI)</span>
                         <span class="pin-value">GPIO10 (Pin 19)</span>
                     </div>
                     <div class="pin-item">
-                        <span class="pin-label">MISO (Data In)</span>
+                        <span class="pin-label">MI (MISO)</span>
                         <span class="pin-value">GPIO9 (Pin 21)</span>
                     </div>
                     <div class="pin-item">
-                        <span class="pin-label">CS (Chip Select)</span>
-                        <span class="pin-value" id="pin-cs">GPIO8 (Pin 24)</span>
+                        <span class="pin-label">SCK (Clock)</span>
+                        <span class="pin-value">GPIO11 (Pin 23)</span>
                     </div>
+                </div>
+                
+                <!-- Visual Pinout -->
+                <div class="pinout-diagram">
+                    <h6>📋 Your PN532 Board Pinout:</h6>
+                    <div class="pinout-grid">
+                        <div class="pinout-item">5V</div>
+                        <div class="pinout-item">GND</div>
+                        <div class="pinout-item">RST#</div>
+                        <div class="pinout-item">IRQ</div>
+                        <div class="pinout-item">NSS</div>
+                        <div class="pinout-item">MO</div>
+                        <div class="pinout-item">MI</div>
+                        <div class="pinout-item">SCK</div>
+                    </div>
+                    <p class="pinout-note">Connect these pins to the corresponding Raspberry Pi GPIO pins listed above.</p>
                 </div>
             </div>
             
@@ -275,6 +299,46 @@
     color: var(--accent-color);
     font-family: 'Courier New', monospace;
     font-size: 0.9em;
+}
+
+.pinout-diagram {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.pinout-diagram h6 {
+    margin: 0 0 10px 0;
+    color: var(--accent-color);
+    font-size: 1em;
+}
+
+.pinout-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.pinout-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 12px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9em;
+}
+
+.pinout-note {
+    margin: 0;
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    font-style: italic;
 }
 
 .test-results {
