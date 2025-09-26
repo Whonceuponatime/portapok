@@ -30,7 +30,39 @@
         </div>
         <div class="step-content">
             <h4 id="step-title">Testing Main Player Hand Reader</h4>
-            <p id="step-description">Place a test card on the main player hand reader to verify it's working correctly.</p>
+            <p id="step-description">Connect your PN532 reader to the specified pins and place a test card to verify it's working correctly.</p>
+            
+            <!-- Pin Connection Guide -->
+            <div class="pin-connection-guide">
+                <h5>🔌 Pin Connection Guide</h5>
+                <div class="pin-grid">
+                    <div class="pin-item">
+                        <span class="pin-label">VCC (Power)</span>
+                        <span class="pin-value" id="pin-vcc">3.3V (Pin 1)</span>
+                    </div>
+                    <div class="pin-item">
+                        <span class="pin-label">GND (Ground)</span>
+                        <span class="pin-value">GND (Pin 6)</span>
+                    </div>
+                    <div class="pin-item">
+                        <span class="pin-label">SCK (Clock)</span>
+                        <span class="pin-value">GPIO11 (Pin 23)</span>
+                    </div>
+                    <div class="pin-item">
+                        <span class="pin-label">MOSI (Data Out)</span>
+                        <span class="pin-value">GPIO10 (Pin 19)</span>
+                    </div>
+                    <div class="pin-item">
+                        <span class="pin-label">MISO (Data In)</span>
+                        <span class="pin-value">GPIO9 (Pin 21)</span>
+                    </div>
+                    <div class="pin-item">
+                        <span class="pin-label">CS (Chip Select)</span>
+                        <span class="pin-value" id="pin-cs">GPIO8 (Pin 24)</span>
+                    </div>
+                </div>
+            </div>
+            
             <div class="step-instructions">
                 <div class="instruction-item">
                     <span class="instruction-icon">📍</span>
@@ -200,6 +232,49 @@
     margin-right: 12px;
     width: 24px;
     text-align: center;
+}
+
+.pin-connection-guide {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid var(--border-color);
+}
+
+.pin-connection-guide h5 {
+    margin: 0 0 15px 0;
+    color: var(--accent-color);
+    font-size: 1.1em;
+}
+
+.pin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.pin-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--card-bg);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.pin-label {
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.pin-value {
+    font-weight: 600;
+    color: var(--accent-color);
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
 }
 
 .test-results {
@@ -454,6 +529,9 @@ function updateCurrentStep() {
     document.getElementById('spi-cs').textContent = `GPIO${currentReader.spi_cs}`;
     document.getElementById('action-text').textContent = getActionText(currentReader);
     
+    // Update pin connections
+    document.getElementById('pin-cs').textContent = `GPIO${currentReader.spi_cs} (Pin ${getPinNumber(currentReader.spi_cs)})`;
+    
     // Update progress
     const completed = calibrationState.readers.filter(r => r.status !== 'pending').length;
     const total = calibrationState.readers.length;
@@ -464,6 +542,14 @@ function updateCurrentStep() {
     // Update current reader status
     currentReader.status = 'testing';
     updateReaderGrid();
+}
+
+// Get physical pin number for GPIO
+function getPinNumber(gpio) {
+    const pinMap = {
+        5: 29, 6: 31, 7: 26, 8: 24, 12: 32, 13: 33, 16: 36, 19: 35, 20: 38, 21: 40, 24: 18, 25: 22, 26: 37
+    };
+    return pinMap[gpio] || '?';
 }
 
 // Get step description based on reader type

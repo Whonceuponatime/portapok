@@ -268,6 +268,12 @@ def calibration_page():
                          table_name=config.get("table_name", "PN532 Poker Table"),
                          readers=READERS)
 
+@app.route("/heads-up")
+def heads_up_page():
+    return render_template("heads_up_table.html", 
+                         table_name=config.get("table_name", "PN532 Poker Table"),
+                         readers=READERS)
+
 # API endpoints
 @app.get("/api/state")
 def get_state():
