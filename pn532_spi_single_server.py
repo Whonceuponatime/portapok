@@ -121,14 +121,14 @@ if PN532_AVAILABLE:
         print(f"🔍 DEBUG: Setting up CS pin {cs_pin}...")
         
         if cs_pin == 8:  # CE0
-            cs_io = board.CE0
-            print("✅ DEBUG: Using board.CE0 for CS")
+            cs_io = digitalio.DigitalInOut(board.CE0)
+            print("✅ DEBUG: Using board.CE0 for CS with digitalio")
         elif cs_pin == 7:  # CE1
-            cs_io = board.CE1
-            print("✅ DEBUG: Using board.CE1 for CS")
+            cs_io = digitalio.DigitalInOut(board.CE1)
+            print("✅ DEBUG: Using board.CE1 for CS with digitalio")
         else:
             cs_io = digitalio.DigitalInOut(getattr(board, f"D{cs_pin}"))
-            print(f"✅ DEBUG: Using GPIO{cs_pin} for CS")
+            print(f"✅ DEBUG: Using GPIO{cs_pin} for CS with digitalio")
         
         debug_info["cs_pin_setup"] = True
         
