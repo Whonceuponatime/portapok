@@ -134,7 +134,11 @@ if PN532_AVAILABLE:
         
         # Step 3: Initialize PN532 with SPI
         print("🔍 DEBUG: Creating PN532_SPI instance...")
-        pn532 = PN532_SPI(spi, cs_io, debug=True)  # Enable debug output
+        print("🔍 DEBUG: SPI pins - SCK:", board.SCK, "MOSI:", board.MOSI, "MISO:", board.MISO)
+        print("🔍 DEBUG: CS pin:", cs_io)
+        
+        # Try with different reset delay
+        pn532 = PN532_SPI(spi, cs_io, debug=True, reset=None)  # No reset pin
         debug_info["pn532_created"] = True
         print("✅ DEBUG: PN532_SPI instance created")
         
@@ -161,9 +165,17 @@ if PN532_AVAILABLE:
             print(f"  {key}: {value}")
         print("\n🔧 TROUBLESHOOTING:")
         print("1. Check SPI is enabled: sudo raspi-config → Interface Options → SPI → Enable")
-        print("2. Verify wiring connections")
+        print("2. Verify wiring connections:")
+        print("   - 5V → Pin 2 (Power)")
+        print("   - GND → Pin 6 (Ground)")
+        print("   - NSS → Pin 24 (GPIO8/CE0)")
+        print("   - MO → Pin 19 (GPIO10/MOSI)")
+        print("   - MI → Pin 21 (GPIO9/MISO)")
+        print("   - SCK → Pin 23 (GPIO11/Clock)")
         print("3. Check power supply (5V)")
-        print("4. Try different CS pin if available")
+        print("4. Verify PN532 jumpers are set for SPI mode (SET0=L, SET1=L)")
+        print("5. Try different CS pin if available")
+        print("6. Check if PN532 board is working with a simple test")
         pn532 = None
 else:
     print("❌ ERROR: PN532 libraries not installed - running in demo mode")
@@ -355,6 +367,49 @@ def api_readers():
             }
         ]
     })
+
+@app.route("/api/test_spi")
+def api_test_spi():
+    """Test SPI communication and provide diagnostic info"""
+    if not PN532_AVAILABLE:
+        return jsonify({"error": "PN532 libraries not available"})
+    
+    try:
+        import board, busio, digitalio
+        from adafruit_pn532.spi import PN532_SPI
+        
+        # Test SPI bus creation
+        spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+        
+        # Test CS pin setup
+        cs_io = digitalio.DigitalInOut(board.CE0)
+        
+        # Try to create PN532 instance
+        test_pn532 = PN532_SPI(spi, cs_io, debug=False, reset=None)
+        
+        # Try to read firmware
+        try:
+            ic, ver, rev, support = test_pn532.firmware_version
+            return jsonify({
+                "success": True,
+                "firmware": f"{ver}.{rev}",
+                "ic": ic,
+                "support": support,
+                "message": "PN532 detected successfully!"
+            })
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "error": f"Firmware read failed: {str(e)}",
+                "message": "PN532 instance created but firmware read failed"
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "SPI test failed"
+        })
 
 @app.route("/api/debug")
 def api_debug():
