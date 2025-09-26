@@ -341,6 +341,21 @@ def api_current_hand():
 def api_detection_history():
     return jsonify(CARD_DETECTION_HISTORY[-20:])  # Last 20 detections
 
+@app.route("/api/readers")
+def api_readers():
+    """Get list of available readers for calibration"""
+    return jsonify({
+        "readers": [
+            {
+                "name": "main",
+                "position": "Main Player Hand",
+                "type": "pn532",
+                "spi_cs": 8,
+                "status": "active" if pn532 else "inactive"
+            }
+        ]
+    })
+
 @app.route("/api/debug")
 def api_debug():
     """Get debug information about PN532 initialization and status"""
