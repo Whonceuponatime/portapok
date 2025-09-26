@@ -41,7 +41,7 @@ sudo raspi-config
 
 | PN532 Pin | Pi Pin | GPIO | Description |
 |-----------|--------|------|-------------|
-| **VDD/5V** | Pin 2 | 5V | Power (can use 3.3V on some boards) |
+| **VDD/5V** | Pin 2 | 5V | Power (5V required for this PN532 board) |
 | **GND** | Pin 6 | GND | Ground |
 | **SDA** | Pin 3 | GPIO2 | I2C Data |
 | **SCL** | Pin 5 | GPIO3 | I2C Clock |
