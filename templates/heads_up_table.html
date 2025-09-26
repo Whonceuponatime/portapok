@@ -373,13 +373,13 @@
         <!-- Main Player Cards -->
         <div class="card-list">
             <div class="card-list-header">
-                <div class="card-list-title">Main Player Hand</div>
+                <div class="card-list-title">Main Player</div>
                 <div class="card-list-status inactive" id="main-status">Inactive</div>
             </div>
             <div class="card-items" id="main-cards">
                 <div class="card-item face-down">
                     <span class="card-label">No cards detected</span>
-                    <span class="card-status face-down">Face Down</span>
+                    <span class="card-uid">-</span>
                 </div>
             </div>
         </div>
@@ -393,7 +393,7 @@
             <div class="card-items" id="p1-cards">
                 <div class="card-item face-down">
                     <span class="card-label">No cards detected</span>
-                    <span class="card-status face-down">Face Down</span>
+                    <span class="card-uid">-</span>
                 </div>
             </div>
         </div>
@@ -407,7 +407,7 @@
             <div class="card-items" id="p2-cards">
                 <div class="card-item face-down">
                     <span class="card-label">No cards detected</span>
-                    <span class="card-status face-down">Face Down</span>
+                    <span class="card-uid">-</span>
                 </div>
             </div>
         </div>
@@ -420,24 +420,24 @@
             </div>
             <div class="card-items" id="p11-cards">
                 <div class="card-item face-down">
-                    <span class="card-label">Flop Card 1</span>
-                    <span class="card-status face-down">Face Down</span>
+                    <span class="card-label">Flop 1</span>
+                    <span class="card-uid">-</span>
                 </div>
                 <div class="card-item face-down">
-                    <span class="card-label">Flop Card 2</span>
-                    <span class="card-status face-down">Face Down</span>
+                    <span class="card-label">Flop 2</span>
+                    <span class="card-uid">-</span>
                 </div>
                 <div class="card-item face-down">
-                    <span class="card-label">Flop Card 3</span>
-                    <span class="card-status face-down">Face Down</span>
+                    <span class="card-label">Flop 3</span>
+                    <span class="card-uid">-</span>
                 </div>
                 <div class="card-item face-down">
-                    <span class="card-label">Turn Card</span>
-                    <span class="card-status face-down">Face Down</span>
+                    <span class="card-label">Turn</span>
+                    <span class="card-uid">-</span>
                 </div>
                 <div class="card-item face-down">
-                    <span class="card-label">River Card</span>
-                    <span class="card-status face-down">Face Down</span>
+                    <span class="card-label">River</span>
+                    <span class="card-uid">-</span>
                 </div>
             </div>
         </div>
@@ -445,13 +445,13 @@
         <!-- Dealer Position -->
         <div class="card-list">
             <div class="card-list-header">
-                <div class="card-list-title">Dealer Position</div>
+                <div class="card-list-title">Dealer</div>
                 <div class="card-list-status inactive" id="p12-status">Inactive</div>
             </div>
             <div class="card-items" id="p12-cards">
                 <div class="card-item face-down">
                     <span class="card-label">No cards detected</span>
-                    <span class="card-status face-down">Face Down</span>
+                    <span class="card-uid">-</span>
                 </div>
             </div>
         </div>
@@ -548,19 +548,20 @@ function startMonitoring(readerName) {
 function updateReaderStatus(data) {
     const isActive = data.is_active;
     const cardCount = data.hand_size || 0;
+    const cards = data.hand_cards || [];
     
     // Update status indicator
-    const statusElement = document.getElementById('reader-status');
+    const statusElement = document.getElementById(`${data.reader}-status`);
     const statusText = document.getElementById('reader-status-text');
     
     if (isActive) {
-        statusElement.classList.remove('inactive');
-        statusElement.classList.add('active');
+        statusElement.textContent = 'Active';
+        statusElement.className = 'card-list-status active';
         statusText.textContent = 'Active';
         statusText.className = 'status-value active';
     } else {
-        statusElement.classList.remove('active');
-        statusElement.classList.add('inactive');
+        statusElement.textContent = 'Inactive';
+        statusElement.className = 'card-list-status inactive';
         statusText.textContent = 'Inactive';
         statusText.className = 'status-value inactive';
     }
@@ -568,33 +569,41 @@ function updateReaderStatus(data) {
     // Update card count
     document.getElementById('cards-detected').textContent = cardCount;
     
-    // Update position card display
-    const positionElement = document.getElementById(`${data.reader}-cards`);
-    if (positionElement) {
-        positionElement.textContent = `${cardCount} card${cardCount !== 1 ? 's' : ''}`;
-    }
-    
-    // Update community cards if this is the community reader
-    if (data.reader === 'p11' && data.hand_cards) {
-        updateCommunityCards(data.hand_cards);
-    }
+    // Update card display
+    updateCardDisplay(data.reader, cards);
     
     // Update last update time
     document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
 }
 
-// Update community cards display
-function updateCommunityCards(cards) {
-    for (let i = 1; i <= 5; i++) {
-        const cardElement = document.getElementById(`commCard${i}`);
-        if (i <= cards.length) {
-            const card = cards[i - 1];
-            cardElement.className = 'community-card face-up';
-            cardElement.textContent = card.label || '?';
-        } else {
-            cardElement.className = 'community-card face-down';
-            cardElement.textContent = '?';
-        }
+// Update card display for a specific reader
+function updateCardDisplay(readerName, cards) {
+    const cardContainer = document.getElementById(`${readerName}-cards`);
+    if (!cardContainer) return;
+    
+    // Clear existing cards
+    cardContainer.innerHTML = '';
+    
+    if (cards.length === 0) {
+        // Show "no cards" message
+        const noCardItem = document.createElement('div');
+        noCardItem.className = 'card-item face-down';
+        noCardItem.innerHTML = `
+            <span class="card-label">No cards detected</span>
+            <span class="card-uid">-</span>
+        `;
+        cardContainer.appendChild(noCardItem);
+    } else {
+        // Show detected cards
+        cards.forEach((card, index) => {
+            const cardItem = document.createElement('div');
+            cardItem.className = 'card-item face-up';
+            cardItem.innerHTML = `
+                <span class="card-label">${card.label || 'Unknown Card'}</span>
+                <span class="card-uid">${card.uid || '-'}</span>
+            `;
+            cardContainer.appendChild(cardItem);
+        });
     }
 }
 
@@ -605,35 +614,31 @@ function goToCalibration() {
 
 function resetTable() {
     if (confirm('Reset the table? This will clear all card data.')) {
-        // Reset all positions
-        document.querySelectorAll('.player-position').forEach(pos => {
-            pos.classList.remove('active');
+        // Reset all reader buttons
+        document.querySelectorAll('.reader-btn').forEach(btn => {
+            btn.classList.remove('active');
         });
         
-        // Reset community cards
-        for (let i = 1; i <= 5; i++) {
-            const cardElement = document.getElementById(`commCard${i}`);
-            cardElement.className = 'community-card face-down';
-            cardElement.textContent = '?';
-        }
+        // Reset all card lists
+        ['main', 'p1', 'p2', 'p11', 'p12'].forEach(reader => {
+            const statusElement = document.getElementById(`${reader}-status`);
+            if (statusElement) {
+                statusElement.textContent = 'Inactive';
+                statusElement.className = 'card-list-status inactive';
+            }
+            
+            // Reset card display
+            updateCardDisplay(reader, []);
+        });
         
         // Reset status
         currentPosition = null;
         currentReader = null;
-        document.getElementById('current-reader').textContent = 'No Reader Active';
         document.getElementById('current-reader-name').textContent = 'None Selected';
         document.getElementById('reader-status-text').textContent = 'Inactive';
         document.getElementById('reader-status-text').className = 'status-value inactive';
         document.getElementById('cards-detected').textContent = '0';
         document.getElementById('last-update').textContent = 'Never';
-        
-        // Reset position card counts
-        ['p1', 'p2', 'p11', 'p12'].forEach(reader => {
-            const element = document.getElementById(`${reader}-cards`);
-            if (element) {
-                element.textContent = '0 cards';
-            }
-        });
     }
 }
 
