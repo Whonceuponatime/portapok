@@ -93,50 +93,106 @@ CARD_STABILITY_TIME = 3.0    # Seconds cards must be stable before showing
 FOLD_DELAY_TIME = 5.0        # Seconds cards must be gone before considering folded
 MAX_HISTORY_SIZE = 50        # Maximum detection history to keep
 
-# Initialize PN532 (SPI) - Single reader setup
+# Initialize PN532 (SPI) - Single reader setup with debugging
 pn532 = None
+debug_info = {
+    "spi_available": False,
+    "spi_created": False,
+    "cs_pin_setup": False,
+    "pn532_created": False,
+    "firmware_read": False,
+    "sam_configured": False,
+    "error": None
+}
+
 if PN532_AVAILABLE:
+    print("🔍 DEBUG: Starting PN532 SPI initialization...")
+    
     try:
-        # Create SPI bus
+        # Step 1: Create SPI bus
+        print("🔍 DEBUG: Creating SPI bus...")
         spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+        debug_info["spi_available"] = True
+        debug_info["spi_created"] = True
+        print(f"✅ DEBUG: SPI bus created successfully")
         
-        # Get CS pin from config (default GPIO8 for main reader)
+        # Step 2: Setup CS pin
         cs_pin = READERS["main"].get("spi_cs", 8)
+        print(f"🔍 DEBUG: Setting up CS pin {cs_pin}...")
+        
         if cs_pin == 8:  # CE0
             cs_io = board.CE0
+            print("✅ DEBUG: Using board.CE0 for CS")
         elif cs_pin == 7:  # CE1
             cs_io = board.CE1
+            print("✅ DEBUG: Using board.CE1 for CS")
         else:
             cs_io = digitalio.DigitalInOut(getattr(board, f"D{cs_pin}"))
+            print(f"✅ DEBUG: Using GPIO{cs_pin} for CS")
         
-        # Initialize PN532 with SPI
-        pn532 = PN532_SPI(spi, cs_io, debug=False)
+        debug_info["cs_pin_setup"] = True
+        
+        # Step 3: Initialize PN532 with SPI
+        print("🔍 DEBUG: Creating PN532_SPI instance...")
+        pn532 = PN532_SPI(spi, cs_io, debug=True)  # Enable debug output
+        debug_info["pn532_created"] = True
+        print("✅ DEBUG: PN532_SPI instance created")
+        
+        # Step 4: Read firmware version
+        print("🔍 DEBUG: Reading firmware version...")
         ic, ver, rev, support = pn532.firmware_version
-        print(f"Found PN532 with firmware version {ver}.{rev}")
+        debug_info["firmware_read"] = True
+        print(f"✅ DEBUG: Found PN532 with firmware version {ver}.{rev}")
+        print(f"✅ DEBUG: IC={ic}, Support={support}")
+        
+        # Step 5: Configure SAM
+        print("🔍 DEBUG: Configuring SAM...")
         pn532.SAM_configuration()
-        print(f"PN532 initialized successfully on SPI with CS={cs_pin}!")
+        debug_info["sam_configured"] = True
+        print("✅ DEBUG: SAM configuration complete")
+        
+        print(f"🎉 SUCCESS: PN532 initialized successfully on SPI with CS={cs_pin}!")
         
     except Exception as e:
-        print(f"PN532 SPI init failed: {e}")
-        print("Check SPI wiring and CS pin configuration")
+        debug_info["error"] = str(e)
+        print(f"❌ ERROR: PN532 SPI init failed: {e}")
+        print("🔍 DEBUG INFO:")
+        for key, value in debug_info.items():
+            print(f"  {key}: {value}")
+        print("\n🔧 TROUBLESHOOTING:")
+        print("1. Check SPI is enabled: sudo raspi-config → Interface Options → SPI → Enable")
+        print("2. Verify wiring connections")
+        print("3. Check power supply (5V)")
+        print("4. Try different CS pin if available")
         pn532 = None
 else:
-    print("PN532 libraries not installed - running in demo mode")
+    print("❌ ERROR: PN532 libraries not installed - running in demo mode")
+    print("Install with: pip install adafruit-circuitpython-pn532 adafruit-blinka")
 
 # Enhanced poll loop with dual-card detection and stability delays
 stop_flag = False
+poll_debug_count = 0
 def poll_loop():
-    global LAST_DETECTED_UID, CARD_DETECTION_HISTORY, CURRENT_HAND
+    global LAST_DETECTED_UID, CARD_DETECTION_HISTORY, CURRENT_HAND, poll_debug_count
     
     while not stop_flag:
         if pn532:
             try:
+                # Debug output every 50 polls (about every 6 seconds)
+                poll_debug_count += 1
+                if poll_debug_count % 50 == 0:
+                    print(f"🔍 DEBUG: Poll #{poll_debug_count} - Attempting card read...")
+                
                 # Try to read a card
                 uid = pn532.read_passive_target(timeout=0.1)
                 
                 if uid:
                     uid_hex_str = "".join(f"{b:02X}" for b in uid)
                     label = UID_TO_LABEL.get(uid_hex_str)
+                    
+                    # Debug output for card detection
+                    if poll_debug_count % 10 == 0:  # Every 10th detection
+                        print(f"🔍 DEBUG: Card detected - UID: {uid_hex_str}, Label: {label or 'unmapped'}")
                     
                     # Update state
                     STATE["main"].update({
@@ -178,7 +234,10 @@ def poll_loop():
                         CURRENT_HAND["fold_start"] = None
                         
                 else:
-                    # No card detected
+                    # No card detected - debug every 100 polls
+                    if poll_debug_count % 100 == 0:
+                        print(f"🔍 DEBUG: Poll #{poll_debug_count} - No card detected")
+                    
                     if CURRENT_HAND["cards"]:
                         # Cards were present, check if they're gone long enough to fold
                         if CURRENT_HAND["fold_start"] is None:
@@ -199,10 +258,13 @@ def poll_loop():
                     LAST_DETECTED_UID = None
                     
             except Exception as e:
-                print(f"Card read error: {e}")
+                print(f"❌ ERROR: Card read error: {e}")
+                print(f"🔍 DEBUG: Error occurred at poll #{poll_debug_count}")
                 time.sleep(0.1)
         else:
             # Demo mode - simulate card detection
+            if poll_debug_count % 10 == 0:
+                print(f"🔍 DEBUG: Demo mode - Poll #{poll_debug_count}")
             time.sleep(1.0)
         
         time.sleep(POLL_INTERVAL)
@@ -217,6 +279,14 @@ app = Flask(__name__)
 # Routes
 @app.route("/")
 def index():
+    return render_template("calibration.html", 
+                         table_config=TABLE_CONFIG,
+                         readers=READERS,
+                         state=STATE,
+                         debug_info=debug_info)
+
+@app.route("/table")
+def table():
     return render_template("table.html", 
                          table_config=TABLE_CONFIG,
                          readers=READERS,
@@ -262,6 +332,20 @@ def api_current_hand():
 @app.route("/api/detection_history")
 def api_detection_history():
     return jsonify(CARD_DETECTION_HISTORY[-20:])  # Last 20 detections
+
+@app.route("/api/debug")
+def api_debug():
+    """Get debug information about PN532 initialization and status"""
+    return jsonify({
+        "debug_info": debug_info,
+        "pn532_available": PN532_AVAILABLE,
+        "pn532_initialized": pn532 is not None,
+        "poll_count": poll_debug_count,
+        "current_state": STATE,
+        "last_detected_uid": LAST_DETECTED_UID,
+        "current_hand": CURRENT_HAND,
+        "recent_detections": CARD_DETECTION_HISTORY[-5:]  # Last 5 detections
+    })
 
 @app.route("/api/current_card_data")
 def api_current_card_data():

@@ -104,6 +104,46 @@
         </div>
     </div>
 
+    <!-- Debug Information -->
+    <div class="debug-info">
+        <h3>🔍 Debug Information</h3>
+        <div class="debug-grid">
+            <div class="debug-item">
+                <span class="debug-label">PN532 Available:</span>
+                <span class="debug-value" id="debug-pn532-available">Loading...</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">SPI Created:</span>
+                <span class="debug-value" id="debug-spi-created">Loading...</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">CS Pin Setup:</span>
+                <span class="debug-value" id="debug-cs-pin">Loading...</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">PN532 Created:</span>
+                <span class="debug-value" id="debug-pn532-created">Loading...</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Firmware Read:</span>
+                <span class="debug-value" id="debug-firmware">Loading...</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">SAM Configured:</span>
+                <span class="debug-value" id="debug-sam">Loading...</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Poll Count:</span>
+                <span class="debug-value" id="debug-poll-count">Loading...</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Last Error:</span>
+                <span class="debug-value" id="debug-error">None</span>
+            </div>
+        </div>
+        <button onclick="refreshDebugInfo()" class="btn btn-secondary">🔄 Refresh Debug Info</button>
+    </div>
+
     <!-- Test Results -->
     <div class="test-results" id="test-results">
         <h3>📋 Test Results</h3>
@@ -339,6 +379,46 @@
     font-size: 0.8em;
     color: var(--text-secondary);
     font-style: italic;
+}
+
+.debug-info {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.debug-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.debug-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    border-left: 3px solid var(--accent-color);
+}
+
+.debug-label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.debug-value {
+    font-family: monospace;
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.debug-value.error {
+    color: #f44336;
 }
 
 .test-results {
@@ -789,7 +869,43 @@ function showError(message) {
     alert('Error: ' + message);
 }
 
+// Refresh debug information
+function refreshDebugInfo() {
+    fetch('/api/debug')
+        .then(response => response.json())
+        .then(data => {
+            // Update debug info display
+            document.getElementById('debug-pn532-available').textContent = data.pn532_available ? '✅ Yes' : '❌ No';
+            document.getElementById('debug-spi-created').textContent = data.debug_info.spi_created ? '✅ Yes' : '❌ No';
+            document.getElementById('debug-cs-pin').textContent = data.debug_info.cs_pin_setup ? '✅ Yes' : '❌ No';
+            document.getElementById('debug-pn532-created').textContent = data.debug_info.pn532_created ? '✅ Yes' : '❌ No';
+            document.getElementById('debug-firmware').textContent = data.debug_info.firmware_read ? '✅ Yes' : '❌ No';
+            document.getElementById('debug-sam').textContent = data.debug_info.sam_configured ? '✅ Yes' : '❌ No';
+            document.getElementById('debug-poll-count').textContent = data.poll_count || '0';
+            
+            const errorElement = document.getElementById('debug-error');
+            if (data.debug_info.error) {
+                errorElement.textContent = data.debug_info.error;
+                errorElement.className = 'debug-value error';
+            } else {
+                errorElement.textContent = 'None';
+                errorElement.className = 'debug-value';
+            }
+        })
+        .catch(error => {
+            console.error('Failed to fetch debug info:', error);
+            document.getElementById('debug-error').textContent = 'Failed to fetch debug info';
+            document.getElementById('debug-error').className = 'debug-value error';
+        });
+}
+
 // Initialize when page loads
-document.addEventListener('DOMContentLoaded', initCalibration);
+document.addEventListener('DOMContentLoaded', function() {
+    initCalibration();
+    // Start auto-refresh for debug info
+    setInterval(refreshDebugInfo, 3000);
+    // Initial debug info load
+    refreshDebugInfo();
+});
 </script>
 {% endblock %}
