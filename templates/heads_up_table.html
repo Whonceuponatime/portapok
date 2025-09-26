@@ -1,0 +1,593 @@
+{% extends "base.html" %}
+
+{% block title %}{{ table_name }} - Heads Up Table{% endblock %}
+
+{% set page = 'heads_up' %}
+
+{% block extra_styles %}
+/* Heads Up Table Styles */
+.heads-up-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 80vh;
+    padding: 20px;
+}
+
+.table-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.table-title {
+    font-size: 2.5em;
+    font-weight: bold;
+    background: linear-gradient(45deg, #00d4ff, #9c27b0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+}
+
+.table-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.1em;
+}
+
+.poker-table {
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse at center, #1a5f1a 0%, #0d3d0d 70%);
+    border-radius: 50%;
+    border: 8px solid #8b4513;
+    position: relative;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    margin: 20px 0;
+}
+
+.table-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: white;
+}
+
+.table-logo {
+    font-size: 3em;
+    margin-bottom: 10px;
+}
+
+.table-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.table-info {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+/* Player Positions */
+.player-position {
+    position: absolute;
+    width: 80px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.player-position:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--accent-color);
+    transform: scale(1.05);
+}
+
+.player-position.active {
+    background: rgba(0, 212, 255, 0.3);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+}
+
+.player-name {
+    font-size: 0.8em;
+    margin-bottom: 2px;
+}
+
+.player-cards {
+    font-size: 0.7em;
+    opacity: 0.8;
+}
+
+/* Community Cards */
+.community-cards {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.community-card {
+    width: 50px;
+    height: 70px;
+    background: white;
+    border: 2px solid #333;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #333;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.community-card.face-down {
+    background: linear-gradient(45deg, #1e3c72, #2a5298);
+    color: white;
+}
+
+.community-card.face-up {
+    background: white;
+    color: #333;
+}
+
+.community-card.folded {
+    background: #666;
+    color: #999;
+    opacity: 0.5;
+}
+
+/* Reader Status */
+.reader-status {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.reader-status.active {
+    background: var(--success-color);
+    color: white;
+    border-color: var(--success-color);
+}
+
+.reader-status.inactive {
+    background: var(--warning-color);
+    color: white;
+    border-color: var(--warning-color);
+}
+
+/* Control Panel */
+.control-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    width: 100%;
+    max-width: 600px;
+}
+
+.control-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.control-title {
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.control-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.control-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.control-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    text-align: center;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.control-btn:hover {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.control-btn.primary {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.control-btn.primary:hover {
+    background: var(--accent-hover);
+}
+
+/* Status Display */
+.status-display {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.status-row:last-child {
+    margin-bottom: 0;
+}
+
+.status-label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.status-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.status-value.active {
+    color: var(--success-color);
+}
+
+.status-value.inactive {
+    color: var(--warning-color);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .heads-up-container {
+        padding: 10px;
+    }
+    
+    .poker-table {
+        width: 90vw;
+        height: 60vw;
+        max-width: 500px;
+        max-height: 350px;
+    }
+    
+    .player-position {
+        width: 60px;
+        height: 45px;
+    }
+    
+    .player-name {
+        font-size: 0.7em;
+    }
+    
+    .player-cards {
+        font-size: 0.6em;
+    }
+    
+    .community-card {
+        width: 40px;
+        height: 55px;
+        font-size: 0.7em;
+    }
+    
+    .control-buttons {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .table-title {
+        font-size: 2em;
+    }
+    
+    .poker-table {
+        width: 95vw;
+        height: 65vw;
+    }
+    
+    .player-position {
+        width: 50px;
+        height: 40px;
+    }
+    
+    .community-card {
+        width: 35px;
+        height: 50px;
+        font-size: 0.6em;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<div class="heads-up-container">
+    <div class="table-header">
+        <h1 class="table-title">Heads Up Poker</h1>
+        <p class="table-subtitle">Single Reader Testing Mode</p>
+    </div>
+    
+    <div class="poker-table">
+        <!-- Reader Status -->
+        <div class="reader-status" id="reader-status">
+            <span id="current-reader">No Reader Active</span>
+        </div>
+        
+        <!-- Community Cards -->
+        <div class="community-cards">
+            <div class="community-card face-down" id="commCard1">?</div>
+            <div class="community-card face-down" id="commCard2">?</div>
+            <div class="community-card face-down" id="commCard3">?</div>
+            <div class="community-card face-down" id="commCard4">?</div>
+            <div class="community-card face-down" id="commCard5">?</div>
+        </div>
+        
+        <!-- Table Center -->
+        <div class="table-center">
+            <div class="table-logo">🎰</div>
+            <div class="table-name">{{ table_name }}</div>
+            <div class="table-info">Heads Up Mode</div>
+        </div>
+        
+        <!-- Player Positions -->
+        <div class="player-position" id="player1" onclick="selectPosition('p1', 'Player 1')" style="top: 20px; left: 50%; transform: translateX(-50%);">
+            <div class="player-name">Player 1</div>
+            <div class="player-cards" id="p1-cards">0 cards</div>
+        </div>
+        
+        <div class="player-position" id="player2" onclick="selectPosition('p2', 'Player 2')" style="bottom: 20px; left: 50%; transform: translateX(-50%);">
+            <div class="player-name">Player 2</div>
+            <div class="player-cards" id="p2-cards">0 cards</div>
+        </div>
+        
+        <div class="player-position" id="community" onclick="selectPosition('p11', 'Community Cards')" style="top: 50%; left: 20px; transform: translateY(-50%);">
+            <div class="player-name">Community</div>
+            <div class="player-cards" id="p11-cards">0 cards</div>
+        </div>
+        
+        <div class="player-position" id="dealer" onclick="selectPosition('p12', 'Dealer')" style="top: 50%; right: 20px; transform: translateY(-50%);">
+            <div class="player-name">Dealer</div>
+            <div class="player-cards" id="p12-cards">0 cards</div>
+        </div>
+    </div>
+    
+    <div class="control-panel">
+        <div class="control-header">
+            <h3 class="control-title">Reader Control</h3>
+            <p class="control-subtitle">Select a position to test with your single reader</p>
+        </div>
+        
+        <div class="control-buttons">
+            <button class="control-btn primary" onclick="goToCalibration()">
+                🎯 Run Calibration
+            </button>
+            <button class="control-btn" onclick="resetTable()">
+                🔄 Reset Table
+            </button>
+            <button class="control-btn" onclick="viewCards()">
+                🃏 View Cards
+            </button>
+            <button class="control-btn" onclick="viewConfig()">
+                ⚙️ Configuration
+            </button>
+        </div>
+        
+        <div class="status-display">
+            <div class="status-row">
+                <span class="status-label">Current Reader:</span>
+                <span class="status-value" id="current-reader-name">None Selected</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Reader Status:</span>
+                <span class="status-value inactive" id="reader-status-text">Inactive</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Cards Detected:</span>
+                <span class="status-value" id="cards-detected">0</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Last Update:</span>
+                <span class="status-value" id="last-update">Never</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPosition = null;
+let currentReader = null;
+
+// Select a position for testing
+function selectPosition(readerName, displayName) {
+    // Remove active class from all positions
+    document.querySelectorAll('.player-position').forEach(pos => {
+        pos.classList.remove('active');
+    });
+    
+    // Add active class to selected position
+    document.getElementById(readerName === 'p1' ? 'player1' : 
+                          readerName === 'p2' ? 'player2' : 
+                          readerName === 'p11' ? 'community' : 'dealer').classList.add('active');
+    
+    currentPosition = readerName;
+    currentReader = displayName;
+    
+    // Update UI
+    document.getElementById('current-reader').textContent = `${displayName} Reader`;
+    document.getElementById('current-reader-name').textContent = displayName;
+    document.getElementById('reader-status').classList.remove('active', 'inactive');
+    document.getElementById('reader-status').classList.add('inactive');
+    document.getElementById('reader-status-text').textContent = 'Inactive';
+    document.getElementById('reader-status-text').className = 'status-value inactive';
+    
+    // Start monitoring this reader
+    startMonitoring(readerName);
+}
+
+// Start monitoring the selected reader
+function startMonitoring(readerName) {
+    const interval = setInterval(() => {
+        if (currentPosition !== readerName) {
+            clearInterval(interval);
+            return;
+        }
+        
+        fetch(`/api/reader/${readerName}/status`)
+            .then(response => response.json())
+            .then(data => {
+                updateReaderStatus(data);
+            })
+            .catch(error => {
+                console.error('Error monitoring reader:', error);
+            });
+    }, 1000);
+}
+
+// Update reader status display
+function updateReaderStatus(data) {
+    const isActive = data.is_active;
+    const cardCount = data.hand_size || 0;
+    
+    // Update status indicator
+    const statusElement = document.getElementById('reader-status');
+    const statusText = document.getElementById('reader-status-text');
+    
+    if (isActive) {
+        statusElement.classList.remove('inactive');
+        statusElement.classList.add('active');
+        statusText.textContent = 'Active';
+        statusText.className = 'status-value active';
+    } else {
+        statusElement.classList.remove('active');
+        statusElement.classList.add('inactive');
+        statusText.textContent = 'Inactive';
+        statusText.className = 'status-value inactive';
+    }
+    
+    // Update card count
+    document.getElementById('cards-detected').textContent = cardCount;
+    
+    // Update position card display
+    const positionElement = document.getElementById(`${data.reader}-cards`);
+    if (positionElement) {
+        positionElement.textContent = `${cardCount} card${cardCount !== 1 ? 's' : ''}`;
+    }
+    
+    // Update community cards if this is the community reader
+    if (data.reader === 'p11' && data.hand_cards) {
+        updateCommunityCards(data.hand_cards);
+    }
+    
+    // Update last update time
+    document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+}
+
+// Update community cards display
+function updateCommunityCards(cards) {
+    for (let i = 1; i <= 5; i++) {
+        const cardElement = document.getElementById(`commCard${i}`);
+        if (i <= cards.length) {
+            const card = cards[i - 1];
+            cardElement.className = 'community-card face-up';
+            cardElement.textContent = card.label || '?';
+        } else {
+            cardElement.className = 'community-card face-down';
+            cardElement.textContent = '?';
+        }
+    }
+}
+
+// Navigation functions
+function goToCalibration() {
+    window.location.href = '/calibration';
+}
+
+function resetTable() {
+    if (confirm('Reset the table? This will clear all card data.')) {
+        // Reset all positions
+        document.querySelectorAll('.player-position').forEach(pos => {
+            pos.classList.remove('active');
+        });
+        
+        // Reset community cards
+        for (let i = 1; i <= 5; i++) {
+            const cardElement = document.getElementById(`commCard${i}`);
+            cardElement.className = 'community-card face-down';
+            cardElement.textContent = '?';
+        }
+        
+        // Reset status
+        currentPosition = null;
+        currentReader = null;
+        document.getElementById('current-reader').textContent = 'No Reader Active';
+        document.getElementById('current-reader-name').textContent = 'None Selected';
+        document.getElementById('reader-status-text').textContent = 'Inactive';
+        document.getElementById('reader-status-text').className = 'status-value inactive';
+        document.getElementById('cards-detected').textContent = '0';
+        document.getElementById('last-update').textContent = 'Never';
+        
+        // Reset position card counts
+        ['p1', 'p2', 'p11', 'p12'].forEach(reader => {
+            const element = document.getElementById(`${reader}-cards`);
+            if (element) {
+                element.textContent = '0 cards';
+            }
+        });
+    }
+}
+
+function viewCards() {
+    window.location.href = '/cards';
+}
+
+function viewConfig() {
+    window.location.href = '/config';
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Heads Up Table initialized');
+});
+</script>
+{% endblock %}

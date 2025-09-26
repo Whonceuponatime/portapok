@@ -2,6 +2,8 @@
 
 {% block title %}{{ table_name }} - Poker Table{% endblock %}
 
+{% set page = 'table' %}
+
 {% block extra_styles %}
 /* Playing Card Styles */
 .player-hand-container {
@@ -206,6 +208,54 @@
     align-items: center;
     min-height: 60vh;
     margin: 40px 0;
+}
+
+/* Calibration Status */
+.calibration-status {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-icon {
+    font-size: 1.2em;
+}
+
+.status-text {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.status-details {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.calibration-link {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 6px 12px;
+    border: 1px solid var(--accent-color);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.calibration-link:hover {
+    background: var(--accent-color);
+    color: white;
 }
 
 /* Responsive Design for Table */
@@ -493,6 +543,19 @@
     <div class="page-header">
         <h1 class="page-title">Poker Table Overview</h1>
         <p class="page-subtitle">Professional RFID Card Management System</p>
+        
+        <!-- Calibration Status -->
+        <div class="calibration-status" id="calibration-status">
+            <div class="status-indicator">
+                <span class="status-icon">🎯</span>
+                <span class="status-text">Calibration Status</span>
+            </div>
+            <div class="status-details">
+                <span id="calibration-progress">Checking...</span>
+                <a href="/calibration" class="calibration-link">Run Calibration</a>
+                <a href="/heads-up" class="calibration-link">Heads Up Mode</a>
+            </div>
+        </div>
     </div>
     
     <div class="poker-table-container">
@@ -844,7 +907,55 @@
         alert(`Configure ${position.toUpperCase()} reader position - Coming soon!`);
     }
     
+    // Check calibration status
+    function checkCalibrationStatus() {
+        fetch('/api/readers')
+            .then(response => response.json())
+            .then(data => {
+                const totalReaders = Object.keys(data.readers).length;
+                let activeReaders = 0;
+                
+                // Check each reader status
+                const readerChecks = Object.keys(data.readers).map(readerName => 
+                    fetch(`/api/reader/${readerName}/status`)
+                        .then(response => response.json())
+                        .then(readerData => {
+                            if (readerData.is_active) {
+                                activeReaders++;
+                            }
+                        })
+                        .catch(() => {}) // Ignore errors for individual readers
+                );
+                
+                Promise.all(readerChecks).then(() => {
+                    const progressElement = document.getElementById('calibration-progress');
+                    if (progressElement) {
+                        if (activeReaders === 0) {
+                            progressElement.textContent = 'No readers active - Run calibration';
+                            progressElement.style.color = '#ff6b6b';
+                        } else if (activeReaders < totalReaders) {
+                            progressElement.textContent = `${activeReaders}/${totalReaders} readers active`;
+                            progressElement.style.color = '#ffa726';
+                        } else {
+                            progressElement.textContent = 'All readers calibrated and active';
+                            progressElement.style.color = '#4caf50';
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error checking calibration status:', error);
+                const progressElement = document.getElementById('calibration-progress');
+                if (progressElement) {
+                    progressElement.textContent = 'Error checking status';
+                    progressElement.style.color = '#ff6b6b';
+                }
+            });
+    }
+    
     updateStats();
+    checkCalibrationStatus();
     setInterval(updateStats, 3000);
+    setInterval(checkCalibrationStatus, 10000); // Check calibration every 10 seconds
 </script>
 {% endblock %}
